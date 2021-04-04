@@ -16,5 +16,5 @@ init=input.initgeom()
 dynin=input.initdyn()
 
 
-h,n= Wigner_dist.read_freq('freq.out',ndf=18)
-print(np.shape(n))
+Wigner_dist.WignerSampling()
+
