@@ -1,5 +1,6 @@
 import input
-
+import Wigner_dist
+import numpy as np
 def print_hi(name):
     # Use a breakpoint in the code line below to debug your script.
     print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
@@ -11,8 +12,9 @@ if __name__ == '__main__':
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/
 init=input.initgeom()
-print(init.rkinit)
+
 dynin=input.initdyn()
-print(dynin.gamma_mass)
 
 
+h,n= Wigner_dist.read_freq('freq.out',ndf=18)
+print(np.shape(n))

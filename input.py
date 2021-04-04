@@ -38,19 +38,19 @@ class initgeom():
 
 class initdyn():
     def __init__(self):
-        self.ntraj = 50  # Number of trajectories
-        self.ndiffbasis = 1  # Number of basis sets
-        self.gamma = 1.000  # Gamma var, width of the gaussians
-        self.nstep = 100  # Time-steps by trajectory
-        self.dt = 0.1  # femtoseconds
-        self.nstates = 2
-        self.state = range(0, self.nstates)  # array of states, Kenichiro made the eqs. up to 3
-        self.inipes = 0  # Initial state
-        self.e_ref = 0.00
+        self._ntraj = 50  # Number of trajectories
+        self._ndiffbasis = 1  # Number of basis sets
+        self._gamma = 1.000  # Gamma var, width of the gaussians
+        self._nstep = 100  # Time-steps by trajectory
+        self._dt = 0.1  # femtoseconds
+        self._nstates = 2
+        self._state = range(0, self._nstates)  # array of states, Kenichiro made the eqs. up to 3
+        self._inipes = 0  # Initial state
+        self._e_ref = 0.00
         initg = initgeom()
-        self.gammavec = np.ones(initg.ndf) * self.gamma
-        self.gamma_mass = np.sqrt(self.gammavec / initg.massrk) # gamma,gamma vector and gamma weighted
-        self.compress=np.ones(initg.ndf)  # Compression parameter for the gaussian basis
+        self._gammavec = np.ones(initg.ndf) * self._gamma
+        self._gamma_mass = np.sqrt(self._gammavec / initg.massrk) # gamma,gamma vector and gamma weighted
+        self._compress=np.ones(initg.ndf)  # Compression parameter for the gaussian basis
 
     def updategammas(self, value):   # Update gamma and their relationships
         initg = initgeom()
@@ -60,67 +60,67 @@ class initdyn():
 
     @property
     def ndiffbasis(self):
-        return self.ndiffbasis
+        return self._ndiffbasis
 
     @ndiffbasis.setter
     def ndiffbasis(self, value):
-        self.ndiffbasis = value
+        self._ndiffbasis = value
 
     @property
     def ntraj(self):
-        return self.ntraj
+        return self._ntraj
 
     @ntraj.setter
     def ntraj(self, value):
-        self.ntraj = value
+        self._ntraj = value
 
     @property
     def nstep(self):
-        return self.nstep
+        return self._nstep
 
     @nstep.setter
     def nstep(self, value):
-        self.nstep = value
+        self._nstep = value
 
     @property
     def dt(self):
-        return self.dt
+        return self._dt
 
     @dt.setter
     def dt(self, value):
-        self.dt = value
+        self._dt = value
 
     @property
     def inipes(self):
-        return self.dt
+        return self._dt
 
     @inipes.setter
     def inipes(self, value):
-        self.inipes = value
+        self._inipes = value
 
     @property
     def nstates(self):
-        return self.nstates
+        return self._nstates
 
     @nstates.setter
     def nstates(self,value):
-        self.nstates=value
+        self._nstates=value
 
     @property
     def e_ref(self):
-        return self.e_ref
+        return self._e_ref
 
     @e_ref.setter
     def e_ref(self, value):
-        self.e_ref = value
+        self._e_ref = value
 
     @property
     def compress(self):
-        return self.compress
+        return self._compress
 
     @compress.setter
     def compress(self, value):
-        self.compress = value
+        self._compress = value
 
 def CofMass(rk, mass, natom):
     totmass = np.sum(mass)
