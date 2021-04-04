@@ -16,5 +16,9 @@ init=input.initgeom()
 dynin=input.initdyn()
 
 
-Wigner_dist.WignerSampling()
+n1,n2=Wigner_dist.WignerSampling()
+
+
+Wigner_dist.WPrep(n2)
+print(n1)
 
