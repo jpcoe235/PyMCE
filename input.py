@@ -43,9 +43,9 @@ class initdyn():
         self._gamma = 1.000  # Gamma var, width of the gaussians
         self._nstep = 100  # Time-steps by trajectory
         self._dt = 0.1  # femtoseconds
-        self._nstates = 2
+        self._nstates = 3
         self._state = range(0, self._nstates)  # array of states, Kenichiro made the eqs. up to 3
-        self._inipes = 0  # Initial state
+        self._inipes = 2 # Initial state
         self._e_ref = 0.00
         initg = initgeom()
         self._gammavec = np.ones(initg.ndf) * self._gamma
@@ -92,7 +92,7 @@ class initdyn():
 
     @property
     def inipes(self):
-        return self._dt
+        return self._inipes
 
     @inipes.setter
     def inipes(self, value):
