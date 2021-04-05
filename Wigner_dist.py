@@ -110,7 +110,8 @@ def WignerSampling():
             p[idf] = p_c[j, i]
             idf += 1
 
-    return q, p
+    p_corr=WPrep(p)
+    return q, p_corr
 
 
 class vars:
@@ -171,4 +172,4 @@ def WPrep(p_init):
             y_fin[idf] = p_corr[j, i] / np.sqrt(geo.masses[i])
             idf += 1
 
-    print(y_fin)
+    return y_fin

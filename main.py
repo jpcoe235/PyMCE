@@ -1,24 +1,24 @@
 import input
 import Wigner_dist
 import numpy as np
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+import Traj
 
+'''AIMCE propagation'''
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
+''' First, common variables are initialized using the class Traj, based on the dynamics and geometry inputs'''
+'''q,p initial values, taken from the wigner dist'''
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
-init=input.initgeom()
+geo = input.initgeom()
+dyn = input.initdyn()
+tr = Traj.traj()
 
-dynin=input.initdyn()
+qin, pin = Wigner_dist.WignerSampling()
 
-
-n1,n2=Wigner_dist.WignerSampling()
-
-
-Wigner_dist.WPrep(n2)
-print(n1)
-
+tr.n=1
+tr.
+tr.q = qin
+tr.p = pin
+tr.d = np.zeros(dyn.nstates, dtype=complex)
+tr.d[dyn.inipes - 1] = 1.0 + 0j
+tr.s=np.zeros(dyn.nstates)
+tr.a=tr.d*np.exp(1j*tr.s)
