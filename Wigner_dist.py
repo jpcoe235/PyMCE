@@ -36,7 +36,7 @@ def read_freq(file='freq.out', ndf=18, linear=False):
                 var = 3
                 continue
             if var == 3:
-                n = re.findall("\d+\.\d+", line)
+                n = re.findall("(\d*\.\d+|-\d*\.\d+)", line)
 
                 if n:
 
@@ -79,7 +79,7 @@ def WignerSampling():
     r_c = np.zeros((3, geo.natoms))
     p_c = np.zeros((3, geo.natoms))
 
-    for i in range(nc):
+    for i in range(0,nc):
 
         index = inmod[i]
 
@@ -95,8 +95,8 @@ def WignerSampling():
 
         ic = 0
 
-        for n in range(geo.natoms):
-            for j in range(3):
+        for n in range(0,geo.natoms):
+            for j in range(0, 3):
                 r_c[j, n] = r_c[j, n] + qmode[i] * eigvec[ic, index]
                 p_c[j, n] = p_c[j, n] + pmode[i] * eigvec[ic, index]
                 ic += 1
@@ -104,13 +104,14 @@ def WignerSampling():
     p = np.zeros(geo.ndf)
     q = np.zeros(geo.ndf)
     idf = 0
-    for i in range(geo.natoms):
-        for j in range(3):
+    for i in range(0,geo.natoms):
+        for j in range(0,3):
             q[idf] = r_c[j, i]
             p[idf] = p_c[j, i]
             idf += 1
 
-    p_corr=WPrep(p)
+    p_corr = WPrep(p)
+
     return q, p_corr
 
 
