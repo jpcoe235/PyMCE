@@ -28,12 +28,19 @@ class traj:
         self._dqdt=0
         self._dpdt=0
         self._dsdt=0
+        self._dddt=0
         self._epot=0
         self._grad=0
         self._nac=0
         self._ekin=0
 
 
+    @property
+    def dddt(self):
+        return self._dddt
+    @dddt.setter
+    def dddt(self,value):
+        self._dddt=value
 
     @property
     def nstep(self):
@@ -190,3 +197,11 @@ class traj:
     @ekin.setter
     def ekin(self, value):
         self._ekin = value
+
+    @property
+    def epot(self):
+        return self._epot
+    @epot.setter
+    def epot(self,value):
+        self._epot=value
+

@@ -46,7 +46,7 @@ class initdyn():
         self._nstates = 3
         self._state = range(0, self._nstates)  # array of states, Kenichiro made the eqs. up to 3
         self._inipes = 2 # Initial state
-        self._e_ref = 0.00
+        self._e_ref = -7.80549751000000e+1
         initg = initgeom()
         self._gammavec = np.ones(initg.ndf) * self._gamma
         self._gamma_mass = np.sqrt(self._gammavec / initg.massrk) # gamma,gamma vector and gamma weighted

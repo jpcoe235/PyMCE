@@ -56,7 +56,7 @@ def create_input(trajN, istep, q):
         else:
             line_wr = 'file,2,molpro.wfu\n'
         f.write(line_wr)
-        f.write('punch,molpro.pun\n')
+        f.write('punch,molpro.pun,new\n')
         f.write('basis={\n')
         f.write('''!
 ! HYDROGEN       (4s,1p) -> [2s,1p]
@@ -136,10 +136,10 @@ ORBITAL,IGNORE_ERROR;
                 else:
                     f.write('{FORCE;SAMC,' + str(record) + '};\n')
                     record += 1
-        f.write('''{OPTG,maxit=1;
-coord,3n,norot;
-}
----''')
+#        f.write('''{OPTG,maxit=1;
+#coord,3n,norot;
+#}
+#---''')
 
 
 def readpun():
@@ -155,7 +155,7 @@ def readpun():
         cNacs2 = cNacs1 + 1
         for lines in f:
 
-            if 'MCSCF STATE' in lines:
+            if 'MCSCF STATE ' in lines:
                 string = lines.strip().split()
                 if string[3] == 'Energy':
                     v_c[cV] = float(string[4])
@@ -181,3 +181,32 @@ def readpun():
                         cNacs2 += 1
 
     return v_c, grad, nacmes
+
+
+def update_vars(v_c, grad, nacmes):
+    geo = input.initgeom()
+    dyn = input.initdyn()
+    '''Update the variables and store them using vectorization'''
+    pes = np.zeros(dyn.nstates)
+    grads = np.zeros((dyn.nstates, geo.ndf))
+    nacs = np.zeros((dyn.nstates, dyn.nstates, geo.ndf))
+    for i in range(dyn.nstates):  # Updates pes energy with the reference value (value corresponding to the initial geometry GS)
+        pes[i] = v_c[i] - dyn.e_ref
+
+    for n in range(dyn.nstates):
+        idf = 0
+        for i in range(geo.natoms):
+            for j in range(3):
+                grads[n, idf] = grad[j, i, n] / np.sqrt(geo.massrk[idf])
+                idf += 1
+
+    for n in range(dyn.nstates):
+        for k in range(n + 1, dyn.nstates):
+            idf = 0
+            for i in range(geo.natoms):
+                for j in range(3):
+                    nacs[n, k, idf] = nacmes[j, i, n, k] / np.sqrt(geo.massrk[idf])
+                    nacs[k, n, idf] = -nacmes[j, i, n, k] / np.sqrt(geo.massrk[idf])
+                    idf += 1
+
+    return pes, grads, nacs
