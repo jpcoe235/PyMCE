@@ -48,4 +48,4 @@ tr.nac = nacs
 tr.grad = grads
 tr.epot = pes
 tr = derivatives.derivatives(tr)
-print(tr.dpdt)
+print(tr.nac)
