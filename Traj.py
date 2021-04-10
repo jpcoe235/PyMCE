@@ -16,15 +16,15 @@ class traj:
         self._p = np.zeros(geo.ndf)
         self._dc = 0
         self._time = 0
-        self._dt = (dyn.dt / (ph.au2sec/ 1e-15))
+        self._dt = (dyn.dt*1e-15 / (ph.au2sec))
         self._nprop=1500
         self._nstep=1
         self._iprop = 1
         self._istep = 0
         self._isubstep = 0
         self._a=0
-        self._d=np.zeros(dyn.nstates)
-        self._s=np.zeros(dyn.nstates,dtype=complex)
+        self._d=np.zeros(dyn.nstates,dtype=np.complex128)
+        self._s=np.zeros(dyn.nstates)
         self._dqdt=0
         self._dpdt=0
         self._dsdt=0

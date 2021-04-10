@@ -13,29 +13,38 @@ class initgeom():
         massesdict = get_atomic_masses()  # Mass of each atom
         mass = np.zeros((self.natoms))
         for i in range(0, self.natoms):
-            mass[i] = massesdict[self.atnames[i]]
-        self.masses = mass
+            mass[i] = mass2au(massesdict[self.atnames[i]])
+        self.masses =np.double(mass)
 
-        self.rkangs = self.rk  # List of initial atomic xyz coords, 3*N dim
-        self.rk = CofMass(self.rk, self.masses, self.natoms)  # Set the geometry in the center of mass
+        self.rkangs = np.double(self.rk)  # List of initial atomic xyz coords, 3*N dim
+        self.rk = CofMass(self.rk, self.masses, self.natoms)
+        # Set the geometry in the center of mass
         count = 0
 
         rkbohr_mass = np.zeros((self.natoms * 3))  # Convert the coordinates to massweighted au
         masses_rk = np.zeros((self.natoms * 3))
         for i in range(0, self.natoms):
             for j in range(0, 3):
-                rkbohr_mass[count] = self.rk[count] / ph.bohr * np.sqrt(mass2au(self.masses[i]))
-                masses_rk[count] = mass2au(self.masses[i])
+                rkbohr_mass[count] = self.rk[count] / ph.bohr * np.sqrt(self.masses[i])
+                masses_rk[count] = self.masses[i]
                 count = count + 1
-        self.rkinit = rkbohr_mass
+
+        self._rkinit = rkbohr_mass
 
         self.ndf = self.natoms * 3
         self.massrk = masses_rk
 
 
+
+    @property
+    def rkinit(self):
+        return self._rkinit
+
+    @rkinit.setter
+    def rkinit(self,value):
+        self._rkinit=value
+
 ''' Class defining the dynamics parameters and abinitio contrains mass weighted'''
-
-
 class initdyn():
     def __init__(self):
         self._ntraj = 50  # Number of trajectories
@@ -43,20 +52,19 @@ class initdyn():
         self._gamma = 1.000  # Gamma var, width of the gaussians
         self._nstep = 100  # Time-steps by trajectory
         self._dt = 0.1  # femtoseconds
-        self._nstates = 3
+        self._nstates = 2
         self._state = range(0, self._nstates)  # array of states, Kenichiro made the eqs. up to 3
-        self._inipes = 2 # Initial state
+        self._inipes = 2  # Initial state
         self._e_ref = -7.80549751000000e+1
         initg = initgeom()
         self._gammavec = np.ones(initg.ndf) * self._gamma
-        self._gamma_mass = np.sqrt(self._gammavec / initg.massrk) # gamma,gamma vector and gamma weighted
-        self._compress=np.ones(initg.ndf)  # Compression parameter for the gaussian basis
+        self._gamma_mass = np.sqrt(self._gammavec / initg.massrk)  # gamma,gamma vector and gamma weighted
+        self._compress = np.ones(initg.ndf)  # Compression parameter for the gaussian basis
 
-    def updategammas(self, value):   # Update gamma and their relationships
+    def updategammas(self, value):  # Update gamma and their relationships
         initg = initgeom()
         self.gamma = value
         self.gammavec = np.ones(initg.ndf) * self.gamma
-        self.gamma_mass = np.sqrt(self.gammavec / initg.massrk)
 
     @property
     def ndiffbasis(self):
@@ -103,8 +111,8 @@ class initdyn():
         return self._nstates
 
     @nstates.setter
-    def nstates(self,value):
-        self._nstates=value
+    def nstates(self, value):
+        self._nstates = value
 
     @property
     def e_ref(self):
@@ -122,6 +130,11 @@ class initdyn():
     def compress(self, value):
         self._compress = value
 
+    @property
+    def gamma_mass(self):
+        return self._gamma_mass
+
+
 def CofMass(rk, mass, natom):
     totmass = np.sum(mass)
     center = [0., 0., 0.]
@@ -133,9 +146,8 @@ def CofMass(rk, mass, natom):
             count += 1
 
     count = 0
-    for i in range(0, natom):
-        fac = mass[i] / totmass
-        for j in range(0, 3):
+    for i in range(natom):
+        for j in range(3):
             rk[count] = rk[count] - center[j]
             count += 1
 
@@ -156,8 +168,10 @@ def process_geometry(geom_file='geometry.xyz'):
     """
 
     with open(geom_file, 'r') as open_file:
-        coords = []
+
         atom_names = []
+        atoms = []
+        n = 0
         for i, line in enumerate(open_file):
             if i == 0:
                 assert len(line.split()) == 1
@@ -170,9 +184,18 @@ def process_geometry(geom_file='geometry.xyz'):
                 if len(line_list) > 0:
                     assert len(line_list) == 4, 'wrong xyz file format'
                     coord = [float(num.replace('d', 'e')) for num in line_list[1:4]]
-                    for x in coord: coords.append(x)
+                    atoms.append(coord)
+                    n = n + 1
                     atom_names.append(line_list[0])
+        idf = 0
 
+        atoms = np.transpose(np.asarray(atoms))
+
+        coords = np.zeros(n_atoms * 3)
+        for l in range(n_atoms):
+            for j in range(3):
+                coords[idf] = atoms[j, l]
+                idf += 1
     # converting coordinates into 1D numpy array
     array = np.asarray(coords)
 
@@ -180,8 +203,8 @@ def process_geometry(geom_file='geometry.xyz'):
 
 
 def get_atomic_masses():
-    masses_dict = {'H': 1.008, 'HE': 4.003, 'LI': 6.941, 'BE': 9.012, \
-                   'B': 10.811, 'C': 12.011, 'N': 14.007, 'O': 15.999, \
+    masses_dict = {'H': 1.00782504, 'HE': 4.003, 'LI': 6.941, 'BE': 9.012, \
+                   'B': 10.811, 'C': 12.00, 'N': 14.007, 'O': 15.999, \
                    'F': 18.998, 'NE': 20.180, 'NA': 22.990, 'MG': 24.305, \
                    'AL': 26.982, 'SI': 28.086, 'P': 30.974, 'S': 32.066, \
                    'CL': 35.453, 'AR': 39.948, 'K': 39.098, 'CA': 40.078, \

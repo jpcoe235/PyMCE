@@ -1,6 +1,7 @@
 import re
 import numpy as np
 from input import initgeom as ig
+import input
 import Constants
 import random
 
@@ -67,20 +68,25 @@ def WignerSampling():
 
     eigval, eigvec = read_freq('freq.out', geo.ndf, False)
 
+    '''Check that the Hessian is mass weighted '''
+
     eigval = eigval.astype(np.float)
     eigvec = eigvec.astype(np.float)
+
+    N = np.matmul(np.transpose(eigvec[:, 6:]), eigvec[:, 6:])
 
     nc = geo.ndf - 6
     inmod = np.asarray(range(6, geo.ndf, 1))
 
+    for i in range(nc):
+        print(N[i, i])
     alpha = np.zeros(nc)
     qmode = np.zeros(nc)
     pmode = np.zeros(nc)
     r_c = np.zeros((3, geo.natoms))
     p_c = np.zeros((3, geo.natoms))
 
-    for i in range(0,nc):
-
+    for i in range(0, nc):
         index = inmod[i]
 
         omega = np.sqrt(float(eigval[index]) / ph.amu)
@@ -93,9 +99,53 @@ def WignerSampling():
         qmode[i] = 0.5 * rq * (np.sqrt(alpha[i])) ** (-1)
         pmode[i] = np.sqrt(alpha[i]) * rp
 
-        ic = 0
 
-        for n in range(0,geo.natoms):
+    # R = np.zeros((3, geo.natoms))
+    # P = np.zeros_like(R)
+    # L = 0
+    # for i in range(geo.natoms):
+    #     for j in range(3):
+    #         R[j, i] = 0
+    #         P[j, i] = 0
+    #         for k in range(nc):
+    #
+    #             R[j, i] += eigvec[L, inmod[k]] * qmode[k]
+    #             P[j, i] += eigvec[L, inmod[k]] * pmode[k]
+    #         L = L + 1
+    #
+    # for i in range(geo.natoms):
+    #     for j in range(3):
+    #         R[j, i] = R[j, i] / np.sqrt(geo.masses[i])
+    #         P[j, i] = P[j, i] * np.sqrt(geo.masses[i])
+    # k = 0
+    # vel = np.zeros_like(P)
+    # for i in range(geo.natoms):
+    #     for j in range(3):
+    #         R[j, i] = R[j, i]
+    #         vel[j, i] = P[j, i] / geo.masses[i]
+    #
+    # RCM = np.zeros(3)
+    # VelCM = np.zeros(3)
+    # TotMass = 0
+    # for i in range(geo.natoms):
+    #     TotMass += geo.masses[i]
+    #     for j in range(3):
+    #         RCM[j] += R[j, i] * geo.masses[i]
+    #         VelCM[j] += geo.masses[i] * vel[j, i]
+    #
+    # RCM = RCM / TotMass
+    # VelCM = VelCM / TotMass
+    #
+    # for i in range(geo.natoms):
+    #     for j in range(3):
+    #         # R[j,i]-=RCM[j]
+    #         vel[j, i] -= VelCM[j]
+    #         P[j, i] = vel[j, i] * geo.masses[i]
+
+    for i in range(nc):
+        ic = 0
+        index = inmod[i]
+        for n in range(0, geo.natoms):
             for j in range(0, 3):
                 r_c[j, n] = r_c[j, n] + qmode[i] * eigvec[ic, index]
                 p_c[j, n] = p_c[j, n] + pmode[i] * eigvec[ic, index]
@@ -104,13 +154,20 @@ def WignerSampling():
     p = np.zeros(geo.ndf)
     q = np.zeros(geo.ndf)
     idf = 0
-    for i in range(0,geo.natoms):
-        for j in range(0,3):
+    for i in range(0, geo.natoms):
+        for j in range(0, 3):
             q[idf] = r_c[j, i]
             p[idf] = p_c[j, i]
             idf += 1
+    ZPE=0.0
+    for i in range(nc):
+        ZPE=ZPE+eigval[inmod[i]]
+
+
 
     p_corr = WPrep(p)
+
+
 
     return q, p_corr
 
@@ -159,9 +216,13 @@ def WPrep(p_init):
 
     totmass = np.sum(geo.masses)
 
-    partial_mass = geo.masses / totmass
+    partial_mass = np.asarray(geo.masses / totmass)
 
-    totmom_i = np.sum(p * partial_mass, axis=1)
+    totmom_i = np.zeros(3)
+
+    for i in range(geo.natoms):
+        for j in range(3):
+            totmom_i[j] += p[j, i] * partial_mass[i]
 
     p_corr = np.zeros(np.shape(p))
     idf = 0
@@ -169,8 +230,10 @@ def WPrep(p_init):
 
     for i in range(geo.natoms):
         for j in range(3):
-            p_corr[j, i] = p[j, i] - totmom_i[j]
+            p_corr[j, i] = p_corr[j, i] - totmom_i[j]
+
+    for i in range(geo.natoms):
+        for j in range(3):
             y_fin[idf] = p_corr[j, i] / np.sqrt(geo.masses[i])
             idf += 1
-
     return y_fin
