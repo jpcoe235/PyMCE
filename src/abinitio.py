@@ -1,6 +1,7 @@
-import input
-import Constants
-import Traj
+from src.constants import physconst
+from src.dyn_params import initdyn
+from src.geometry import initgeom
+import time
 import numpy as np
 import os
 
@@ -24,13 +25,15 @@ class ab_par():
         self.n_el = 16
 
 
-def inp_out(i, substep, q,geo):
+def inp_out(i, substep, geo, T1):
     os.system('rm molpro.pun')
     os.system('rm molpro_traj*')
-    create_input(i, substep, q,geo)
+    q = T1.getposition_traj()
+
+    create_input(i, substep, q, geo)
     os.system('E:/Molpro/bin/molpro.exe -d . -s molpro_traj_' + str(i) + '_' + str(substep) + '.inp')
     time_counter = 0
-
+    time_to_wait = 100
     while not os.path.exists('molpro.pun'):
         time.sleep(1)
         time_counter += 1
@@ -39,35 +42,41 @@ def inp_out(i, substep, q,geo):
             break
     N, L, M = readpun()
 
-    pes, grads, nacs = update_vars(N, L, M,geo)
+    pes, grads, nacs = update_vars(N, L, M, geo)
 
-    return pes, grads, nacs
+    der = np.zeros((geo.ndf, T1.nstates, T1.nstates))
+    for i in range(T1.nstates):
+        der[:, i, i] = grads[:, i]
+        for j in range(T1.nstates):
+            der[:, i, j] = nacs[:, i, j]
+    return pes, der
 
 
-def transform_q_to_r(q,geo):
-
-    rkinit_1 = geo.rkinit
-
-    ph = Constants.physconst()
+def transform_q_to_r(q, geo, first):
+    ph = physconst()
     k = 0
     r = np.zeros((3, geo.natoms))
 
-    diff=np.double(q + rkinit_1)
+    diff = np.double(q)
     for i in range(geo.natoms):
         for j in range(3):
-            mass_inv = 1.0 / np.sqrt(geo.masses[i])
+            if first:
+                mass_inv = 1.0 / np.sqrt(geo.masses[i])
+            else:
+                mass_inv = 1
             r[j, i] = mass_inv * (diff[k]) * ph.bohr
+
             k += 1
 
     return r
 
 
-def create_input(trajN, istep, q,geo):
+def create_input(trajN, istep, q, geo):
     ab = ab_par()
-
-    dyn = input.initdyn()
+    ph = physconst()
+    dyn = initdyn()
     if trajN == 0 and istep == 0:
-        first = True
+        first = False
     else:
         first = False
 
@@ -75,7 +84,8 @@ def create_input(trajN, istep, q,geo):
 
     file = 'molpro_traj_' + str(trajN) + '_' + str(istep) + '.inp'
 
-    r = transform_q_to_r(q,geo)
+    # if first:
+    r = transform_q_to_r(q, geo, first)
 
     # if istep==0 and trajN==0:
     #     r=np.transpose(np.asarray([[7.0544201503E-01,-8.8768894715E-03,-6.6808940143E-03],[-6.8165975936E-01,1.7948934206E-02,4.0230273972E-03],[ 1.2640943417E+00,9.0767471618E-01,-3.0960211126E-02],[-1.4483835697E+00 ,8.7539956319E-01 ,4.6789959947E-02],[1.0430033100E+00,-9.0677165411E-01 ,8.1418967247E-02],[-1.1419988770E+00,-9.8436525752E-01,-6.5589218426E-02]]))
@@ -178,8 +188,8 @@ coord,3n,norot;
 
 
 def readpun():
-    dyn = input.initdyn()
-    geo = input.initgeom()
+    dyn = initdyn()
+    geo = initgeom()
     v_c = np.zeros(dyn.nstates)
     grad = np.zeros((3, geo.natoms, dyn.nstates))
     nacmes = np.zeros((3, geo.natoms, dyn.nstates, dyn.nstates))
@@ -220,13 +230,12 @@ def readpun():
     return v_c, grad, nacmes
 
 
-def update_vars(v_c, grad, nacmes,geo):
-
-    dyn = input.initdyn()
+def update_vars(v_c, grad, nacmes, geo):
+    dyn = initdyn()
     '''Update the variables and store them using vectorization'''
     pes = np.zeros(dyn.nstates)
-    grads = np.zeros((dyn.nstates, geo.ndf))
-    nacs = np.zeros((dyn.nstates, dyn.nstates, geo.ndf))
+    grads = np.zeros((geo.ndf, dyn.nstates))
+    nacs = np.zeros((geo.ndf, dyn.nstates, dyn.nstates))
     for i in range(
             dyn.nstates):  # Updates pes energy with the reference value (value corresponding to the initial geometry GS)
         pes[i] = v_c[i] - dyn.e_ref
@@ -235,7 +244,7 @@ def update_vars(v_c, grad, nacmes,geo):
         idf = 0
         for i in range(geo.natoms):
             for j in range(3):
-                grads[n, idf] = grad[j, i, n] / np.sqrt(geo.masses[i])
+                grads[idf, n] = grad[j, i, n] # / np.sqrt(geo.masses[i])
                 idf += 1
 
     for n in range(dyn.nstates):
@@ -243,8 +252,8 @@ def update_vars(v_c, grad, nacmes,geo):
             idf = 0
             for i in range(geo.natoms):
                 for j in range(3):
-                    nacs[n, k, idf] = nacmes[j, i, n, k] / np.sqrt(geo.masses[i])
-                    nacs[k, n, idf] = -nacmes[j, i, n, k] / np.sqrt(geo.masses[i])
+                    nacs[idf, n, k] = nacmes[j, i, n, k]  # / np.sqrt(geo.masses[i])
+                    nacs[idf, k, n] = -nacmes[j, i, n, k] # / np.sqrt(geo.masses[i])
                     idf += 1
 
     return pes, grads, nacs
