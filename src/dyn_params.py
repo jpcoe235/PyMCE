@@ -10,7 +10,7 @@ class initdyn():
         self._ndiffbasis = 1  # Number of basis sets
         self._gamma = np.asarray([22.7,22.7,4.7,4.7,4.7,4.7])  # Gamma var, width of the gaussians
         self._nstep = 100  # Time-steps by trajectory
-        self._dt = (0.2* 1e-15 / (ph.au2sec)) # femtoseconds
+        self._dt = (0.1* 1e-15 / (ph.au2sec)) # femtoseconds
         self._nstates = 2
         self._state = range(0, self._nstates)  # array of states, Kenichiro made the eqs. up to 3
         self._inipes = 2  # Initial state
