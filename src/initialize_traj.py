@@ -1,6 +1,6 @@
 import numpy as np
 from Constants import physconst
-
+import overlaps as ov
 ''' Class defining the initial geometry mass weighted'''
 
 
@@ -44,6 +44,7 @@ class trajectory():
         self.old_pos = 0.0
         self.old_mom = 0.0
         self.old_amp = 0.0
+        self.dotph=0.0
 
     def getwidth_traj(self):
         return self.width
@@ -53,6 +54,18 @@ class trajectory():
 
     def setoldpos_traj(self, value):
         self.old_pos = value
+
+    def getamp_traj(self):
+        return self.amp
+
+    def setamp_traj(self,value):
+        self.amp=value
+
+    def getphase_traj(self):
+        return self.phase
+
+    def setphase_traj(self,value):
+        self.phase=value
 
     def setoldmom_traj(self, value):
         self.old_mom = value
@@ -159,6 +172,27 @@ class trajectory():
 
         return fvec
 
+    def get_calc_HE_traj(self):
+        nstates=self.nstates
+        HE=np.zeros((nstates,nstates))
+        for i in range(nstates):
+            HE[i,i]=self.getpotential_traj_i(i)
+            for j in range(i+1,nstates):
+                HE[i,j]=-ov.coupdotvel(self,i,j)
+                HE[j,i]=-HE[i,j]
+        self.setHE_traj(HE)
+        return self.HE
+
+    def getHE_traj(self):
+        return self.HE
+
+    def setHE_traj(self,value):
+        self.HE=value
+
+    def phasedot(self):
+        self.dotph = getkineticlass(self) - 0.5 * np.sum(self.getwidth_traj() / self.getmass_traj())
+        return self.fdotph
+
 
 def compforce(T, A, F, E, C):
     nst = T.nstates
@@ -175,9 +209,6 @@ def compforce(T, A, F, E, C):
     return fvec
 
 
-def phasedot(T):
-    dotph = getkineticlass(T) - 0.5 * np.sum(T.getwidth_traj() / T.getmass_traj())
-    return dotph
 
 
 def getkineticlass(T):

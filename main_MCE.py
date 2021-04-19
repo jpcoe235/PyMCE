@@ -20,37 +20,7 @@ os.system('rm molpro.pun')
 os.system('rm molpro_traj*')
 
 ''' call initial geometry and dynamic parameters along with pyhisical constants'''
-dyn = initdyn()
-geo = initgeom()
-ph = physconst()
-
-'''First initialize and populate one trajectory'''
-
-
-
-
-T1 = initialize_traj.trajectory(geo.natoms, 3, dyn.nstates)
-qin, pin = Wigner_dist.WignerSampling()
-print(pin)
-T1.setposition_traj(qin + geo.rkinit)
-T1.setmomentum_traj(pin)
-
-pec, der = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
-
-T1.setpotential_traj(pec)  # taking V(R) from ab-initio
-T1.setderivs_traj(der)  # derivatives matrix mass-weighted (possibly change that), diagonals are forces and off-d are nacmes
-T1.setmass_traj(geo.masses)  # mass of every atom in a.u (the dimmension is natoms/nparts)
-T1.setmassall_traj(geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
-
-amps = np.zeros(T1.nstates, dtype=np.complex128)
-amps[dyn.inipes - 1] = 1.00  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
-
-T1.setamplitudes_traj(amps)
-
-phases = np.ones(T1.nstates)  # Phase of the wfn, would be S in the previous equation
-
-T1.setphases_traj(phases)
-T1.setwidth_traj(dyn._gamma)  # As I am doing everything mass-weighted, also applied to the widths
+ # As I am doing everything mass-weighted, also applied to the widths
 
 
 dt = dyn.dt
