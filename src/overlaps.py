@@ -1,5 +1,5 @@
 import numpy as np
-import initialize_traj
+
 
 
 def coupdotvel(T, i, j):
@@ -96,7 +96,7 @@ def overlap_v_traj(T1,T2):
 
     if ind1==ind2:
         V=T1.getpotential_traj()
-    else
+    else:
         nstates1=T1.nstates
         for i in range(nstates1):
             T1.HE[i,i]=T1.getpotential_traj_i(i)

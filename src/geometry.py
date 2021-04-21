@@ -12,9 +12,8 @@ class initgeom():
         for i in range(0, self.natoms):
             mass[i] = mass2au(massesdict[self.atnames[i]])
         self.masses = np.double(mass)
-
         self.rkangs = np.double(self.rk)  # List of initial atomic xyz coords, 3*N dim
-        self.rk = CofMass(self.rk, self.masses, self.natoms)
+       # self.rk = CofMass(self.rk, self.masses, self.natoms)
         # Set the geometry in the center of mass
         count = 0
 

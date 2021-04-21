@@ -35,7 +35,7 @@ def der(q, p, s, d, epot, grad, nac, geo):
             if i != j:
                 nac1d = 0.0
                 for n in range(geo.ndf):
-                    nac1d += q_dot[n] * nac[i, j, n]
-                d_dot[i] = d_dot[i] - np.double(nac1d) * d[j] * np.exp(1.0j * (s[j] - s[i]), dtype=np.complex128)
+                    nac1d += q_dot[n] * nac[j,i, n]
+                d_dot[i] = d_dot[i] - np.complex128(nac1d) * d[j] * np.exp(1.0j * (s[j] - s[i]), dtype=np.complex128)
 
     return q_dot, p_dot, s_dot, d_dot

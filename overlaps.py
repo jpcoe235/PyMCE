@@ -120,30 +120,6 @@ def kinetic_nuc_1d(xi, xj, di, dj, xwi, xwj):
 
     return kinetic
 
-def potential_nuc_elec(ti,tj):
-
-
-    ni=ti.get_ID()
-    nj=tj.get_ID()
-    I=ti.get_nstate()
-    J=tj.get_nstate()
-
-    if I==J and ni==nj:
-        V=ni.get_potential_avg()
-
-    if I!=J:
-        V=0.0
-
-    if I==J and ni!=nj:
-
-        ntoti=ti.get_nstates()
-        ntotj=tj.get_nstates()
-
-        for i in range(ntoti):
-            HE[i,i]=ni.get_potential()
-
-            for j in range(i+1,ntoti):
-                HE[i,j]=c1i*
 
 
 

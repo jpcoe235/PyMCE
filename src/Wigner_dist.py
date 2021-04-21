@@ -70,7 +70,7 @@ def WignerSampling():
 
     '''Check that the Hessian is mass weighted '''
 
-    eigval = np.sqrt(eigval.astype(np.float) / ph.amu)
+    eigval = np.sqrt(eigval.astype(np.float)/ph.amu)
     eigvec = eigvec.astype(np.float)
 
     N = np.matmul(np.transpose(eigvec[:, 6:]), eigvec[:, 6:])
@@ -79,21 +79,21 @@ def WignerSampling():
     inmod = np.asarray(range(6, geo.ndf, 1))
 
     # for i in range(nc):
-    #   print(N[i, i])
+     #   print(N[i, i])
     alpha = np.zeros(nc)
     qmode = np.zeros(nc)
     pmode = np.zeros(nc)
     r_c = np.zeros((3, geo.natoms))
     p_c = np.zeros((3, geo.natoms))
 
-    ZPE = 0
+    ZPE=0
     for i in range(0, nc):
         index = inmod[i]
 
-        omega = np.sqrt(float(eigval[index]) / ph.amu)
+       # omega = np.sqrt(float(eigval[index]) / ph.amu)
 
-        alpha[i] = 0.5 * omega
-        #   alpha[i]=float(eigval[index])/(2.0)
+       # alpha[i] = 0.5 * omega
+        alpha[i]=float(eigval[index])/(2.0)
         rq = RandomGaussianSample()
         rp = RandomGaussianSample()
 
@@ -101,7 +101,7 @@ def WignerSampling():
         pmode[i] = np.sqrt(alpha[i]) * rp
 
         ZPE += eigval[index]
-    print('ZPE:', ZPE)
+    print('ZPE:',ZPE)
 
     # R = np.zeros((3, geo.natoms))
     # P = np.zeros_like(R)
@@ -159,9 +159,10 @@ def WignerSampling():
     idf = 0
     for i in range(0, geo.natoms):
         for j in range(0, 3):
-            q[idf] = r_c[j, i]
-            p[idf] = p_c[j, i]
+            q[idf] = r_c[j, i] /np.sqrt(geo.masses[i])
+            p[idf] = p_c[j, i]*np.sqrt(geo.masses[i])
             idf += 1
+
 
     ekin = 0
     k = 0
@@ -172,16 +173,17 @@ def WignerSampling():
 
     print('EKIN:', ekin)
 
+
     p_corr = WPrep(p)
 
-    ekin = 0
-    k = 0
+    ekin=0
+    k=0
     for i in range(geo.natoms):
         for j in range(3):
-            ekin = ekin + p_corr[k] * p_corr[k] / geo.masses[i]
-            k += 1
+            ekin=ekin+p_corr[k]*p_corr[k]/geo.masses[i]
+            k+=1
 
-    print('EKIN_corr:', ekin)
+    print('EKIN_corr:',ekin)
     return q, p_corr
 
 
@@ -224,26 +226,30 @@ def WPrep(p_init):
     p = np.zeros((3, geo.natoms))
     for i in range(geo.natoms):
         for j in range(3):
-            p[j, i] = y[idf] * np.sqrt(geo.masses[i])
+            p[j, i] = y[idf]/geo.masses[i]
             idf += 1
 
     totmass = np.sum(geo.masses)
 
-    VelCM = np.zeros(3)
+
+
+
+    VelCM=np.zeros(3)
     for i in range(geo.natoms):
         for j in range(3):
-            VelCM[j] += geo.masses[i] * p[j, i]
+            VelCM[j]+=geo.masses[i]*p[j,i]
 
-    VelCM = VelCM / totmass
-
+    VelCM=VelCM/totmass
+    print(VelCM)
     p_corr = np.zeros(np.shape(p))
-    y_fin = np.zeros(geo.ndf)
+    y_fin=np.zeros(geo.ndf)
     for i in range(geo.natoms):
         for j in range(3):
-            p[j, i] = p[j, i] - VelCM[j]
-            p_corr[j, i] = p[j, i] / np.sqrt(geo.masses[i])
 
-    idf = 0
+            p[j,i]=p[j,i]-VelCM[j]
+            p_corr[j,i] =p[j,i]*geo.masses[i]
+
+    idf=0
     for i in range(geo.natoms):
         for j in range(3):
             y_fin[idf] = p_corr[j, i]

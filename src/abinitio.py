@@ -48,7 +48,8 @@ def inp_out(i, substep, geo, T1):
     for i in range(T1.nstates):
         der[:, i, i] = grads[:, i]
         for j in range(T1.nstates):
-            der[:, i, j] = nacs[:, i, j]
+            if i != j:
+                der[:, i, j] = nacs[:, i, j]
     return pes, der
 
 
@@ -63,7 +64,7 @@ def transform_q_to_r(q, geo, first):
             if first:
                 mass_inv = 1.0 / np.sqrt(geo.masses[i])
             else:
-                mass_inv = 1
+                mass_inv = 1.0
             r[j, i] = mass_inv * (diff[k]) * ph.bohr
 
             k += 1
@@ -236,15 +237,14 @@ def update_vars(v_c, grad, nacmes, geo):
     pes = np.zeros(dyn.nstates)
     grads = np.zeros((geo.ndf, dyn.nstates))
     nacs = np.zeros((geo.ndf, dyn.nstates, dyn.nstates))
-    for i in range(
-            dyn.nstates):  # Updates pes energy with the reference value (value corresponding to the initial geometry GS)
-        pes[i] = v_c[i] - dyn.e_ref
+    for i in range(dyn.nstates):  # Updates pes energy with the reference value (value corresponding to the initial geometry GS)
+        pes[i] = v_c[i]
 
     for n in range(dyn.nstates):
         idf = 0
         for i in range(geo.natoms):
             for j in range(3):
-                grads[idf, n] = grad[j, i, n] # / np.sqrt(geo.masses[i])
+                grads[idf, n] = grad[j, i, n]  # / np.sqrt(geo.masses[i])
                 idf += 1
 
     for n in range(dyn.nstates):
@@ -253,7 +253,7 @@ def update_vars(v_c, grad, nacmes, geo):
             for i in range(geo.natoms):
                 for j in range(3):
                     nacs[idf, n, k] = nacmes[j, i, n, k]  # / np.sqrt(geo.masses[i])
-                    nacs[idf, k, n] = -nacmes[j, i, n, k] # / np.sqrt(geo.masses[i])
+                    nacs[idf, k, n] = -nacmes[j, i, n, k]  # / np.sqrt(geo.masses[i])
                     idf += 1
 
-    return pes, grads, nacs
+    return pes, -grads, nacs

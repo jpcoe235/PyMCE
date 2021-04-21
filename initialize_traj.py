@@ -1,6 +1,6 @@
 import numpy as np
 from Constants import physconst
-import overlaps as ov
+import src.overlaps as ov
 
 ''' Class defining the initial geometry mass weighted'''
 
@@ -189,26 +189,28 @@ class trajectory():
         self.HE = value
 
     def phasedot(self):
-        self.dotph = self.getkineticlass() - 0.5 * np.sum(self.getwidth_traj() / self.getmass_traj())
+        self.dotph = getkineticlass(self) - 0.5 * np.sum(self.getwidth_traj() / self.getmass_traj())
         return self.dotph
 
-    def getkineticlass(self):
 
-        p = self.getmomentum_traj()
-        energy = np.sum(p*p / self.getmassall_traj(),dtype=np.double())
+def compforce(T, A, F, E, C):
+    nst = T.nstates
+    f1 = np.zeros(T.ndim)
+    f2 = np.zeros(T.ndim)
 
-        return energy
+    for i in range(nst):
+        f1 = f1 + F[:, i] * np.abs(A[i]) ** 2
+    for i in range(nst):
+        for j in range(nst):
+            tmp = 2.0 * np.real(np.conj(A[i]) * A[j]) * (E[i] - E[j])
+            f2 += tmp * C[:, i, j]
+    fvec = f1 + f2
+    return fvec
 
-    def compforce(self, A, F, E, C):
-        nst = self.nstates
-        f1 = np.zeros(self.ndim)
-        f2 = np.zeros(self.ndim)
 
-        for i in range(nst):
-            f1 = f1 + F[:, i] * np.abs(A[i]) ** 2
-        for i in range(nst):
-            for j in range(i+1,nst):
-                tmp = 2.0 * np.real(np.conj(A[i]) * A[j]) * (E[i] - E[j])
-                f2 = f2+tmp * C[:, i, j]
-        fvec = f1 + f2
-        return fvec
+def getkineticlass(T):
+
+    p = T.getmomentum_traj()
+    energy=np.dot(p,p/T.getmassall_traj())
+
+    return energy

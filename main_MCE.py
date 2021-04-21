@@ -5,10 +5,12 @@ from src import abinitio
 from src.constants import physconst
 from src.propagators import velocityverlet
 import numpy as np
-import Wigner_dist
+import src.Wigner_dist as Wigner_dist
 import os
 from matplotlib import pyplot as plt
 import multiprocessing as mp
+import src.ekincorrection as ek
+
 print("Number of processors: ", mp.cpu_count())
 '''AIMCE propagation'''
 
@@ -20,31 +22,65 @@ os.system('rm molpro.pun')
 os.system('rm molpro_traj*')
 
 ''' call initial geometry and dynamic parameters along with pyhisical constants'''
- # As I am doing everything mass-weighted, also applied to the widths
+# As I am doing everything mass-weighted, also applied to the widths
+dyn = initdyn()
+geo = initgeom()
+ph = physconst()
 
+'''First initialize and populate one trajectory'''
 
-dt = dyn.dt
+T1 = initialize_traj.trajectory(geo.natoms, 3, dyn.nstates)
+qin, pin = Wigner_dist.WignerSampling()
+
+T1.setposition_traj(qin + geo.rkinit)
+T1.setmomentum_traj(pin)
+
+pec, der = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
+
+T1.setpotential_traj(pec)  # taking V(R) from ab-initio
+T1.setderivs_traj(
+    der)  # derivatives matrix mass-weighted (possibly change that), diagonals are forces and off-d are nacmes
+T1.setmass_traj(geo.masses)  # mass of every atom in a.u (the dimmension is natoms/nparts)
+T1.setmassall_traj(
+    geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
+
+amps = np.zeros(T1.nstates, dtype=np.complex128)
+amps[dyn.inipes - 1] = np.complex128(1.00+0.00j)  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
+
+T1.setamplitudes_traj(amps)
+
+phases = np.zeros(T1.nstates)  # Phase of the wfn, would be S in the previous equation
+
+T1.setphases_traj(phases)
+T1.setwidth_traj(dyn._gamma)
+
+dt = np.double(dyn.dt)
 print(dt)
-time = np.linspace(0,150,1500)
+time = np.linspace(0, 150, 1500)
 amps = np.zeros((1500, 2))
+ekin_tr = 0
+t=0
 for i in range(1500):
+    t=t+0.1
+    T1 = velocityverlet(T1, dt, i)
 
-    T1 = velocityverlet(T1, dt,i)
-
-
-
+    T1,ekin_tr=ek.calc_ekin_tr(T1,ekin_tr)
+  #  print(ekin_tr)
 
     print('step ', i)
     print('norm', np.sum(np.abs(T1.stateAmpE) ** 2))
     print('pop s0: ', np.abs(T1.stateAmpE[0]) ** 2)
     print('pop s1: ', np.abs(T1.stateAmpE[1]) ** 2)
-    energy=T1.getpotential_traj()+initialize_traj.getkineticlass(T1)
-    print('energy:',energy)
-    print('nacs',np.sum(T1.getcoupling_traj(0,1)))
-    # plt.scatter(t_sim, np.double(toten), c='blue')
+    energy = T1.getpotential_traj() + T1.getkineticlass() - ekin_tr
+
+    print('energy:', energy)
+    print('nacs', np.sum(T1.getcoupling_traj(0, 1)))
+
+    plt.scatter(t, np.double(energy), c='blue')
+    plt.pause(0.1)
     amps[i, 0] = np.abs(T1.stateAmpE[0]) ** 2
     amps[i, 1] = np.abs(T1.stateAmpE[1]) ** 2
-plt.plot(time, np.abs(amps[:, 0]) , c='blue')
-plt.plot(time, np.abs(amps[:, 1]) , c='red')
+plt.plot(time, np.abs(amps[:, 0]), c='blue')
+plt.plot(time, np.abs(amps[:, 1]), c='red')
 
 plt.show()

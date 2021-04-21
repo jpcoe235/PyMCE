@@ -229,7 +229,7 @@ def update_vars(v_c, grad, nacmes,geo):
     nacs = np.zeros((dyn.nstates, dyn.nstates, geo.ndf))
     for i in range(
             dyn.nstates):  # Updates pes energy with the reference value (value corresponding to the initial geometry GS)
-        pes[i] = v_c[i] - dyn.e_ref
+        pes[i] = v_c[i]-dyn.e_ref
 
     for n in range(dyn.nstates):
         idf = 0

@@ -90,6 +90,7 @@ def rk_method_4(q, p, s, d, epot, grad, nac, time, dt, ekin_tr, nstep,geo):
 
     idf = 0
     for i in range(geo.natoms):
+
         for j in range(3):
             q[idf] = q_new_ref[j, i] - dr_com[j] * np.sqrt(geo.masses[i])
             p[idf] = p_new_ref[j, i] - v_com[j] * np.sqrt(geo.masses[i])
