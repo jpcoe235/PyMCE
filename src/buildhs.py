@@ -90,6 +90,7 @@ def buildsandh(B):
     B.setSinv_bundle(Sinv)
     B.setT_bundle(T)
     B.setV_bundle(V)
+    return B
 
 
 

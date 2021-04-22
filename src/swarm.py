@@ -10,6 +10,8 @@ import numpy as np
 import Wigner_dist
 from src import bundle
 from src import branching
+from src import buildhs
+from src import overlaps as ov
 
 
 def createswarm(ntraj, npart, ndim, numstates):
@@ -42,6 +44,29 @@ def createswarm(ntraj, npart, ndim, numstates):
     for i in range(ntraj):
         B.trajectory[i].amp=B.trajectory[i].amp/np.sqrt(norm)
 
+    B=buildhs.buildsandh(B)
+
+    Sif=np.zeros(ntraj)
+    for i in range(ntraj):
+        Sif[i]=ov.overlap_trajs(Tinit,B.Traj[i])
+
+    Sif=np.matmul(np.conj(B.Sinv,Sif))
+
+    B.setamps_bundle(Sif)
+
+    norm=B.get_calc_set_norm()
+
+    for i in range(ntraj):
+        B.Traj[i].amp=B.Traj[i].amp/np.sqrt(norm)
+
+    amps=np.zeros(ntraj)
+
+    for i in range(ntraj):
+        amps[i]=B.Traj[i].amp
+
+    B.setamps_bundle(amps)
+
+    return B
 
 
 

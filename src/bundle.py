@@ -23,6 +23,7 @@ class bundle():
         self.Heff1 = np.zeros((ntraj, ntraj))
         self.time = 0.0
         self.norm = 1.0
+        self.amps=np.ones(ntraj)
 
     def getTraj_bundle(self):
         return self.Traj
@@ -59,6 +60,12 @@ class bundle():
 
     def getnorm_bundle(self):
         return self.norm
+
+    def getamps_bundle(self):
+        return self.amps
+
+    def setamps_bundle(self,value):
+        self.amps=value
 
     def setTraj_bundle(self,value):
         self.Traj=value
