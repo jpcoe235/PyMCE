@@ -8,23 +8,45 @@ from src.constants import physconst
 from src.propagators import velocityverlet
 import numpy as np
 import Wigner_dist
+from src import bundle
+from src import branching
 
 
 def createswarm(ntraj, npart, ndim, numstates):
+    trajs=[]
     Tinit = inittraj()
+    trajs.append(Tinit)
 
     X = Tinit.getposition_traj()
     P = Tinit.getmomentum_traj()
     sigma = 0.1
-    p_norm=np.sqrt(np.sum(P**2)
-    for i in range(1, ntraj):
-        T = initialize_traj.trajectory(npart, ndim, numstates)
-        n1 = np.random.rand(1)
+    p_norm=np.sqrt(np.sum(P**2))
+    for i in range(1,ntraj):
+        T = initialize_traj.trajectory(npart=npart,ndim=ndim,numstates=numstates)
+        n1 = np.random.rand()
         dx = sigma * (2 * n1 - 1.0)
         n2=np.random.rand()
         dp=sigma/p_norm*(2*n2-1)
         T.setposition_traj(X+dx)
         T.setmomentum_traj(P+dp)
+        T.setamplitudes_traj(Tinit.getamplitude_traj())
+        T.setphases_traj(Tinit.getphase_traj())
+        T.setwidth_traj(Tinit.getwidth_traj())
+        trajs.append(T)
+
+    B=bundle.bundle(ntraj, npart, ndim, numstates)
+    B.trajectory=trajs
+
+    norm=B.get_calc_set_norm()
+
+    for i in range(ntraj):
+        B.trajectory[i].amp=B.trajectory[i].amp/np.sqrt(norm)
+
+
+
+
+
+
 
 
 def inittraj():

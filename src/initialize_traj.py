@@ -15,7 +15,7 @@ class trajectory():
         self.npart = npart
         self.stateID = 0
         self.currentime = 0.0
-        self.amp = 0
+        self.amp = 1.0
         self.phase = 0
         self.deadtime = 0
         self.phaseE = np.zeros(self.nstates)
@@ -117,10 +117,10 @@ class trajectory():
         return self.PotEn[Istate]
 
     def getpotential_traj(self):
-        E = 0.
+        E = np.double(0.0)
 
         for i in range(self.nstates):
-            E += self.getpotential_traj_i(i) * np.abs(self.stateAmpE[i]) ** 2
+            E += self.getpotential_traj_i(i) * np.abs(self.stateAmpE[i])**2
 
         return E
 
@@ -195,7 +195,7 @@ class trajectory():
     def getkineticlass(self):
 
         p = self.getmomentum_traj()
-        energy = np.sum(p*p / self.getmassall_traj(),dtype=np.double())
+        energy = 0.5*np.sum(p*p / self.getmassall_traj(),dtype=np.double())
 
         return energy
 

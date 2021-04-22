@@ -14,7 +14,7 @@ class initdyn():
         self._nstates = 2
         self._state = range(0, self._nstates)  # array of states, Kenichiro made the eqs. up to 3
         self._inipes = 2  # Initial state
-        self._e_ref = -7.80549751000000e+1
+        self._e_ref = np.double(-7.80549751000000e+1)
 
     @property
     def ndiffbasis(self):

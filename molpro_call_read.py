@@ -3,6 +3,7 @@ import Constants
 import Traj
 import numpy as np
 import os
+import time
 
 ''' Routine to call and read parameters from molpro, it is recommended to check the convergence of the calculation before starting
 a dynamics calculation'''
@@ -28,9 +29,9 @@ def inp_out(i, substep, q,geo):
     os.system('rm molpro.pun')
     os.system('rm molpro_traj*')
     create_input(i, substep, q,geo)
-    os.system('E:/Molpro/bin/molpro.exe -d . -s molpro_traj_' + str(i) + '_' + str(substep) + '.inp')
+    os.system('E:/Molpro/bin/molpro.exe -s molpro_traj_' + str(i) + '_' + str(substep) + '.inp')
     time_counter = 0
-
+    time_to_wait=1000
     while not os.path.exists('molpro.pun'):
         time.sleep(1)
         time_counter += 1

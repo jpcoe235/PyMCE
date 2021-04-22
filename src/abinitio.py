@@ -50,10 +50,14 @@ def inp_out(i, substep, geo, T1):
         for j in range(T1.nstates):
             if i != j:
                 der[:, i, j] = nacs[:, i, j]
+
+
+
     return pes, der
 
 
 def transform_q_to_r(q, geo, first):
+    first=False
     ph = physconst()
     k = 0
     r = np.zeros((3, geo.natoms))
@@ -94,38 +98,38 @@ def create_input(trajN, istep, q, geo):
         f.write(
             '***,' + ab.molecule + ' ' + 'calculation of ' + str(istep) + ' step in trejectory ' + str(trajN) + '\n')
         if first:
-            line_wr = 'file,3,molpro.wfu,new\n'
+            line_wr = 'file,3,003.molpro.wfu,new\n'
         else:
-            line_wr = 'file,3,molpro.wfu\n'
+            line_wr = 'file,3,003.molpro.wfu\n'
         f.write(line_wr)
         f.write('memory,100,m\n')
         f.write('punch,molpro.pun,new\n')
         f.write('basis={\n')
-        f.write('''!
-! HYDROGEN       (4s,1p) -> [2s,1p]
- s, H ,   13.0100000,    1.9620000,   0.4446000
- c, 1.3,   0.0196850,    0.1379770,   0.4781480
- s, H ,    0.1220000
- c, 1.1,   1.0000000
- p, H ,    0.7270000
- c, 1.1,   1.0000000
-!
-!
-! CARBON       (9s,4p,1d) -> [3s,2p,1d]
- s, C , 6665.0000000, 1000.0000000, 228.0000000, 64.7100000, 21.0600000,  7.4950000,  2.7970000, 0.5215000
- c, 1.8,   0.0006920,    0.0053290,   0.0270770,  0.1017180,  0.2747400,  0.4485640,  0.2850740, 0.0152040
- s, C , 6665.0000000, 1000.0000000, 228.0000000, 64.7100000, 21.0600000,  7.4950000,  2.7970000, 0.5215000
- c, 1.8,  -0.0001460,   -0.0011540,  -0.0057250, -0.0233120, -0.0639550, -0.1499810, -0.1272620, 0.5445290
- s, C ,    0.1596000
- c, 1.1,   1.0000000
- p, C ,    9.4390000,    2.0020000,   0.5456000
- c, 1.3,   0.0381090,    0.2094800,   0.5085570
- p, C ,    0.1517000
- c, 1.1,   1.0000000
- d, C ,    0.5500000
- c, 1.1,   1.0000000
-}
-''')
+        f.write('''                                                                               !
+                                                                                 ! HYDROGEN       (4s,1p) -&gt; [2s,1p]
+  s, H ,   13.0100000,    1.9620000,   0.4446000
+  c, 1.3,   0.0196850,    0.1379770,   0.4781480
+  s, H ,    0.1220000
+  c, 1.1,   1.0000000
+  p, H ,    0.7270000
+  c, 1.1,   1.0000000
+                                                                                 !
+                                                                                 !
+                                                                                 ! CARBON       (9s,4p,1d) -&gt; [3s,2p,1d]
+  s, C , 6665.0000000, 1000.0000000, 228.0000000, 64.7100000, 21.0600000,  7.4950000,  2.7970000, 0.5215000
+  c, 1.8,   0.0006920,    0.0053290,   0.0270770,  0.1017180,  0.2747400,  0.4485640,  0.2850740, 0.0152040
+  s, C , 6665.0000000, 1000.0000000, 228.0000000, 64.7100000, 21.0600000,  7.4950000,  2.7970000, 0.5215000
+  c, 1.8,  -0.0001460,   -0.0011540,  -0.0057250, -0.0233120, -0.0639550, -0.1499810, -0.1272620, 0.5445290
+  s, C ,    0.1596000
+  c, 1.1,   1.0000000
+  p, C ,    9.4390000,    2.0020000,   0.5456000
+  c, 1.3,   0.0381090,    0.2094800,   0.5085570
+  p, C ,    0.1517000
+  c, 1.1,   1.0000000
+  d, C ,    0.5500000
+  c, 1.1,   1.0000000
+ }
+ ''')
         f.write('''symmetry,nosym;
 orient,noorient;
 angstrom;
@@ -146,13 +150,13 @@ maxiter,40;
         line_wr = 'occ,' + str(ab.act_orb) + ';\n'
         line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
         line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
-        line_wr4 = 'state,' + str(dyn.nstates) + ';\n'
+        line_wr4 = 'state,' + str(3) + ';\n'
 
         f.write(line_wr)
         f.write(line_wr2)
         f.write(line_wr3)
         f.write(line_wr4)
-        f.write('''weight,1,1;
+        f.write('''weight,1,1,1;
 orbital,2140.3;
 canonical,2140.2,ci;
 ORBITAL,IGNORE_ERROR;
@@ -194,32 +198,44 @@ def readpun():
     v_c = np.zeros(dyn.nstates)
     grad = np.zeros((3, geo.natoms, dyn.nstates))
     nacmes = np.zeros((3, geo.natoms, dyn.nstates, dyn.nstates))
+    pos=np.zeros((3,geo.natoms))
     with open('molpro.pun', 'r') as f:
         cV = 0
         cPes = 0
         cNacs1 = 0
         cNacs2 = cNacs1 + 1
+        readV=True
         for lines in f:
 
-            if 'MCSCF STATE ' in lines:
+            if lines.startswith('ATOM'):
+                string = lines.strip().split()
+                atom=int(string[1])-1
+                pos[0,atom]=np.double(float(string[4]))
+                pos[1, atom] = np.double(float(string[5]))
+                pos[2, atom] = np.double(float(string[6]))
+
+
+            if 'MCSCF STATE ' in lines and readV:
                 string = lines.strip().split()
                 if string[3] == 'Energy':
-                    v_c[cV] = np.double(string[4])
+                    v_c[cV] = np.double(float(string[4]))
                     cV += 1
+                if cV==dyn.nstates:
+                    readV=False
             if 'SA-MC GRADIENT' in lines:
                 string = lines.strip().split()
                 atom = int(string[3].replace(':', '')) - 1
-                grad[0, atom, cPes] = float(string[4])
-                grad[1, atom, cPes] = float(string[5])
-                grad[2, atom, cPes] = float(string[6])
+                grad[0, atom, cPes] = np.double(float(string[4]))
+                grad[1, atom, cPes] = np.double(float(string[5]))
+                grad[2, atom, cPes] = np.double(float(string[6]))
                 if atom == geo.natoms - 1:
                     cPes += 1
             if 'SA-MC NACME' in lines:
                 string = lines.strip().split()
                 atom = int(string[3].replace(':', '')) - 1
-                nacmes[0, atom, cNacs1, cNacs2] = float(string[4])
-                nacmes[1, atom, cNacs1, cNacs2] = float(string[5])
-                nacmes[2, atom, cNacs1, cNacs2] = float(string[6])
+                nacmes[0, atom, cNacs1, cNacs2] = np.double(float(string[4]))
+                nacmes[1, atom, cNacs1, cNacs2] = np.double(float(string[5]))
+                nacmes[2, atom, cNacs1, cNacs2] = np.double(float(string[6]))
                 if atom == geo.natoms - 1:
                     if cNacs2 == dyn.nstates - 1:
                         cNacs1 += 1
@@ -238,7 +254,7 @@ def update_vars(v_c, grad, nacmes, geo):
     grads = np.zeros((geo.ndf, dyn.nstates))
     nacs = np.zeros((geo.ndf, dyn.nstates, dyn.nstates))
     for i in range(dyn.nstates):  # Updates pes energy with the reference value (value corresponding to the initial geometry GS)
-        pes[i] = v_c[i]
+        pes[i] = v_c[i]-dyn.e_ref
 
     for n in range(dyn.nstates):
         idf = 0

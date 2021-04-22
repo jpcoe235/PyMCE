@@ -180,7 +180,7 @@ def WignerSampling():
     k=0
     for i in range(geo.natoms):
         for j in range(3):
-            ekin=ekin+p_corr[k]*p_corr[k]/geo.masses[i]
+            ekin=ekin+0.5*p_corr[k]*p_corr[k]/geo.masses[i]
             k+=1
 
     print('EKIN_corr:',ekin)

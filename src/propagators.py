@@ -10,7 +10,7 @@ from Wigner_dist import WPrep
 
 def magnus_2(H0, H1, dt):
     ndim = np.size(H0[:, 0])
-    Hav = 0.0
+    Hav = np.complex128(0.0)
     for i in range(ndim):
         Hav = Hav + H0[i, i] + H1[i, i]
 
@@ -75,9 +75,8 @@ def velocityverlet(T, timestep, NN):
 
     pes, der = ab.inp_out(NN, 0, geo, T)
 
-    T.setderivs_traj(der)
 
-    F1 = T.get_traj_force()
+    T.setderivs_traj(der)
     T.setpotential_traj(pes)
     es1 = np.zeros(nst)
     fs1 = np.zeros((T.ndim, nst))
