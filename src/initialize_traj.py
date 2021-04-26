@@ -20,7 +20,7 @@ class trajectory():
         self.deadtime = 0
         self.phaseE = np.zeros(self.nstates)
         self.stateAmpE = np.zeros(self.nstates)
-        self.HE = np.zeros((self.nstates, self.nstates))
+        self.HE = np.zeros((self.nstates, self.nstates),dtype=np.complex128)
         self.position = np.zeros(ndim)
         self.momentum = np.zeros(ndim)
         self.width = np.zeros(npart)
@@ -46,6 +46,12 @@ class trajectory():
         self.old_mom = 0.0
         self.old_amp = 0.0
         self.dotph = 0.0
+
+    def gettrajid_traj(self):
+        return self.trajID
+
+    def settrajid_traj(self,value):
+        self.trajID=value
 
     def getwidth_traj(self):
         return self.width
@@ -177,7 +183,7 @@ class trajectory():
         for i in range(nstates):
             HE[i, i] = self.getpotential_traj_i(i)
             for j in range(i + 1, nstates):
-                HE[i, j] = -ov.coupdotvel(self, i, j)
+                HE[i, j] = -1j*ov.coupdotvel(self, i, j)
                 HE[j, i] = -HE[i, j]
         self.setHE_traj(HE)
         return self.HE

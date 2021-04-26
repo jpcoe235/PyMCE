@@ -80,3 +80,11 @@ class initdyn():
     def compress(self, value):
         self._compress = value
 
+    @property
+    def gamma(self):
+        return self._gamma
+
+    @gamma.setter
+    def gamma(self, value):
+        self._gamma= value
+

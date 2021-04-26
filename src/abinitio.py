@@ -138,7 +138,9 @@ geom={
         ''')
         f.write(str(geo.natoms) + '\n')
         f.write('\n')
+
         for i in range(geo.natoms):
+
             line_wr = geo.atnames[i] + ' ' + str(r[0, i]) + ' ' + str(r[1, i]) + ' ' + str(r[2, i]) + '\n'
             # print(file)
             # print(line_wr)

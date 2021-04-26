@@ -1,7 +1,7 @@
 import initialize_traj
 import numpy as np
-import overlaps as ov
-import branching
+from src import overlaps as ov
+from src import branching
 
 
 class bundle():
@@ -12,18 +12,18 @@ class bundle():
         self.nstates = numstates
         self.Traj = []
         self.pops = np.zeros(numstates)
-        self.S = np.zeros((ntraj, ntraj))
-        self.H = np.zeros((ntraj, ntraj))
-        self.Sdot = np.zeros_like(self.S)
-        self.Sinv = np.zeros_line(self.S)
-        self.T = np.zeros_line(self.H)
-        self.V = np.zeros_like(self.H)
-        self.SE = 0.0
-        self.Heff = np.zeros((ntraj, ntraj))
-        self.Heff1 = np.zeros((ntraj, ntraj))
+        self.S = np.zeros((ntraj, ntraj), dtype=np.complex128)
+        self.H = np.zeros((ntraj, ntraj), dtype=np.complex128)
+        self.Sdot = np.zeros_like(self.S, dtype=np.complex128)
+        self.Sinv = np.zeros_like(self.S, dtype=np.complex128)
+        self.T = np.zeros_like(self.H, dtype=np.complex128)
+        self.V = np.zeros_like(self.H, dtype=np.complex128)
+        self.SE = np.zeros_like(self.H, dtype=np.complex128)
+        self.Heff = np.zeros((ntraj, ntraj), dtype=np.complex128)
+        self.Heff1 = np.zeros((ntraj, ntraj), dtype=np.complex128)
         self.time = 0.0
         self.norm = 1.0
-        self.amps=np.ones(ntraj)
+        self.amps = np.ones(ntraj)
 
     def getTraj_bundle(self):
         return self.Traj
@@ -64,45 +64,44 @@ class bundle():
     def getamps_bundle(self):
         return self.amps
 
-    def setamps_bundle(self,value):
-        self.amps=value
+    def setamps_bundle(self, value):
+        self.amps = value
 
-    def setTraj_bundle(self,value):
-        self.Traj=value
+    def setTraj_bundle(self, value):
+        self.Traj = value
 
-    def setS_bundle(self,value):
-        self.S=value
+    def setS_bundle(self, value):
+        self.S = value
 
-    def setpops_bundle(self,value):
-        self.pops=value
+    def setpops_bundle(self, value):
+        self.pops = value
 
-    def setSinv_bundle(self,value):
-        self.Sinv=value
+    def setSinv_bundle(self, value):
+        self.Sinv = value
 
-    def setH_bundle(self,value):
-        self.H=value
+    def setH_bundle(self, value):
+        self.H = value
 
-    def setT_bundle(self,value):
-        self.T=value
+    def setT_bundle(self, value):
+        self.T = value
 
-    def setV_bundle(self,value):
-        self.V=value
+    def setV_bundle(self, value):
+        self.V = value
 
-    def setSE_bundle(self,value):
-        self.SE=value
+    def setSE_bundle(self, value):
+        self.SE = value
 
-    def setHeff_bundle(self,value):
-        self.Heff=value
+    def setHeff_bundle(self, value):
+        self.Heff = value
 
-    def setHeff1_bundle(self,value):
-        self.Heff1=value
+    def setHeff1_bundle(self, value):
+        self.Heff1 = value
 
-    def settime_bundle(self,value):
-        self.time=value
+    def settime_bundle(self, value):
+        self.time = value
 
     def setnorm_bundle(self):
-        self.norm=value
-
+        self.norm = value
 
     def addtraj(self, newtraj):
         '''All set to 0, call the appropiate routines to recalculate the couplings and Hamilt'''
@@ -130,13 +129,13 @@ class bundle():
     def get_calc_set_overlaps(self):
         for i in range(self.ntraj):
             for j in range(self.ntraj):
-                self.S[i, j] = ov.overlap_trajs(self.T[i], self.T[j])
+                self.S[i, j] = ov.overlap_trajs(self.Traj[i], self.Traj[j])
 
         return self.S
 
     def get_calc_set_norm(self):
         ratio = branching.branching_ratios(self)
-
+        print('ratios :',ratio)
         self.norm = sum(ratio)
 
         return self.norm

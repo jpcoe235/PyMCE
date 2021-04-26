@@ -6,6 +6,58 @@ import src.abinitio as ab
 from src.geometry import initgeom
 from src.overlaps import coupdotvel
 from Wigner_dist import WPrep
+from src import bundle
+from src import buildhs
+import cmath
+
+
+def magnus(B, timestep):
+    ii = np.complex128(0 + 1.00j)
+    magnus_slice = 20
+    ntraj = B.ntraj
+    t0 = B.time
+    t1 = t0 + timestep
+
+    Heff_0 = B.Heff
+
+    print('Hamilt_0: ', Heff_0)
+    nslice = magnus_slice
+
+    for i in range(ntraj):
+        B.Traj[i] = velocityverlet(B.Traj[i], timestep, 1)
+        print(np.abs(B.Traj[i].stateAmpE) ** 2)
+
+    B = buildhs.buildsandh(B)
+
+    Heff_1 = B.Heff
+
+    Heff_a = Heff_0
+
+    C_tdt = B.getamps_bundle()
+
+    for n in range(nslice + 2):
+        if n == 0 or n == nslice:
+            dt = 0.5 * timestep / (nslice + 1)
+        else:
+            dt = timestep / (nslice + 1)
+
+        f_b = n / np.double(nslice + 1.00)
+
+        Heff_b = (1.00 - f_b) * Heff_0 + f_b * Heff_1
+
+        if ntraj == 1:
+            C_tdt[0] = np.exp(-ii * Heff_b[0, 0] * dt) * C_tdt[0]
+        else:
+            C_tdt = np.matmul(magnus_2(-ii * Heff_b, -ii * Heff_b, dt), C_tdt)
+
+
+
+    B.setamps_bundle(C_tdt)
+    print('Norm_amps_bundle :', B.get_calc_set_norm())
+    print('AMps norm:', np.sum(np.abs(C_tdt)**2))
+    B.setamps_bundle(C_tdt/cmath.sqrt(B.norm))
+    B.settime_bundle(t1)
+    return B
 
 
 def magnus_2(H0, H1, dt):
@@ -21,7 +73,9 @@ def magnus_2(H0, H1, dt):
         Htr[i, i] = Hav
     a0 = (H1 + H0) / 2.0 - Htr
     W1 = dt * a0
+
     magH = expm(W1) * np.exp(Hav * dt, dtype=np.complex128)
+
     return magH
 
 
@@ -74,7 +128,6 @@ def velocityverlet(T, timestep, NN):
     T.setmomentum_traj(P1)
 
     pes, der = ab.inp_out(NN, 0, geo, T)
-
 
     T.setderivs_traj(der)
     T.setpotential_traj(pes)
