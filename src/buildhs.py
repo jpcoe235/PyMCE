@@ -6,6 +6,8 @@ from src import MatrixInv
 from scipy import linalg as sla
 from src import GJ_matrix_inv
 from src import Sinveigs as la
+
+from src import invmatmine as inv
 def buildsandh(B):
 
     overlap_tresh = 1e-8
@@ -86,8 +88,10 @@ def buildsandh(B):
 
     fullmat=S*SE
 
-    Sinv=la.Sinv2(fullmat)
-    #Sinv=np.linalg.inv(fullmat)
+    #Sinv=la.Sinv2(fullmat)
+
+    Sinv=inv.invertmat(fullmat)
+   # Sinv3=np.linalg.inv(fullmat)
 
     #Sinv2=MatrixInv.getMatrixInverse(fullmat)
 
@@ -95,7 +99,9 @@ def buildsandh(B):
 
     print('Fullmat in hamilt: ', fullmat)
     print('Sinv in hamilt: ', Sinv)
-    # print('Sinv2 in hamilt: ', Sinv3)
+    # print('Sinv2 in hamilt: ', Sinv2)
+    # print('Sinv3 in hamilt: ', Sinv3)
+
 
     tmpmat=H-1j*Sdot
     Heff=np.matmul(Sinv,tmpmat)

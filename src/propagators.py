@@ -9,7 +9,7 @@ from Wigner_dist import WPrep
 from src import bundle
 from src import buildhs
 import cmath
-
+from src.matexp import matexpAI
 
 def magnus(B, timestep):
     ii = np.complex128(0 + 1.00j)
@@ -74,7 +74,7 @@ def magnus_2(H0, H1, dt):
     a0 = (H1 + H0) / 2.0 - Htr
     W1 = dt * a0
 
-    magH = expm(W1) * np.exp(Hav * dt, dtype=np.complex128)
+    magH = matexpAI(W1) * np.exp(Hav * dt, dtype=np.complex128)
 
     return magH
 

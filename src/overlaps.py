@@ -37,7 +37,7 @@ def overlap_d2x_cg(x1, x2, p1, p2, a1, a2):
 def overlap_dx_cg(x1, x2, p1, p2, a1, a2):
     dx = x1 - x2
     p12 = a1 * p2 + a2 * p1
-    dxCG = (-p12 * 1j - 2 * a1 * a2 * dx) / (a1 + a2)
+    dxCG = -(p12 * 1j - 2 * a1 * a2 * dx) / (a1 + a2)
     dxCG *= overlap_CG(x1, x2, p1, p2, a1, a2)
     return dxCG
 

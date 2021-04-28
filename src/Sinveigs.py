@@ -19,5 +19,5 @@ def Sinv2(A):
 
     Sinvmat = np.matmul(eigvecs, CTmpMat)
 
-    print(np.matmul(Sinvmat,A))
+    
     return Sinvmat
