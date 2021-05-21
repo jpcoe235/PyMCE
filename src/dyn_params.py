@@ -7,22 +7,14 @@ class initdyn():
     def __init__(self):
         ph = physconst()
         self._ntraj = 50  # Number of trajectories
-        self._ndiffbasis = 1  # Number of basis sets
         self._gamma = np.asarray([22.7,22.7,4.7,4.7,4.7,4.7])  # Gamma var, width of the gaussians
         self._nstep = 100  # Time-steps by trajectory
-        self._dt = (0.1* 1e-15 / (ph.au2sec)) # femtoseconds
+        self._dt = (0.1* 1e-15 / (ph.au2sec))
         self._nstates = 2
-        self._state = range(0, self._nstates)  # array of states, Kenichiro made the eqs. up to 3
+        self._state = range(0, self._nstates)  # array of states
         self._inipes = 2  # Initial state
-        self._e_ref = np.double(-7.80549751000000e+1)
+        self._e_ref = np.double(-77.67785291) #Reference energy for the ground state
 
-    @property
-    def ndiffbasis(self):
-        return self._ndiffbasis
-
-    @ndiffbasis.setter
-    def ndiffbasis(self, value):
-        self._ndiffbasis = value
 
     @property
     def ntraj(self):

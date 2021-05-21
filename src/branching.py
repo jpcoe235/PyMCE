@@ -3,6 +3,8 @@ import numpy as np
 
 
 def branching_ratios(B):
+    '''Branching of a bundle with ntraj trajectories, this function needs to be refactored'''
+
     ntraj = B.ntraj
     nstates = B.nstates
 
@@ -26,6 +28,8 @@ def branching_ratios(B):
     for i in range(nstates):
         ratio[i] = np.real(np.dot(c_l * cse[:,i], np.matmul(s_l, c_l * cse[:, i])))
 
+
+    norm=np.sum(ratio)
     return ratio
 
 

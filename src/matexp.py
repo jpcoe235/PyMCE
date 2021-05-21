@@ -10,7 +10,7 @@ import numpy as np
 def matexpAI(B):
     Id = np.zeros_like(B)
 
-    for i in range(len(Id[:,1])):
+    for i in range(len(Id[:,0])):
         Id[i, i] = 1.00
 
     expB_prev = Id

@@ -15,36 +15,37 @@ a dynamics calculation'''
 
 class ab_par():
     def __init__(self):
-        self.molecule = 'Ethylene'
-        self.act_orb = 9
-        self.closed_orb = 7
-        self.basis = 'avdz'
-        self.civec = False
-        self.first = True
-        self.molden = False
-        self.n_el = 16
+        self.molecule = 'Ethylene' #Name of the molecule, it is not really used for anything
+        self.act_orb = 9 # Active orbitals
+        self.closed_orb = 7 # Closed orbitals
+        self.basis = 'avdz' #Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
+        self.civec = False # prints CIs
+        self.first = True #First calculation creates the wf file
+        self.molden = False # create a molden
+        self.n_el = 16 # number of electrons to define the wf
 
 
 def inp_out(i, substep, geo, T1):
     os.system('rm molpro.pun')
-    os.system('rm molpro_traj*')
+    #os.system('rm molpro_traj*')
     q = T1.getposition_traj()
 
-    create_input(i, substep, q, geo)
-    os.system('E:/Molpro/bin/molpro.exe -d . -s molpro_traj_' + str(i) + '_' + str(substep) + '.inp')
-    time_counter = 0
+    create_input(i, substep, q, geo) #call to create_inp function
+
+    os.system('E:/Molpro/bin/molpro.exe -d . -s molpro_traj_' + str(i) + '_' + str(substep) + '.inp') #running molpro, change it for any run in a different computer
+    time_counter = 0 #
     time_to_wait = 100
-    while not os.path.exists('molpro.pun'):
+    while not os.path.exists('molpro.pun'): #Dodgy way to wait for the punch file to be created, should be other elegant way
         time.sleep(1)
         time_counter += 1
         if time_counter > time_to_wait:
             print('more than 1000 secs')
             break
-    N, L, M = readpun()
+    N, L, M = readpun() # Read the punch file, only PES, GRADS and NACMES are read in a (natoms,3) format
 
-    pes, grads, nacs = update_vars(N, L, M, geo)
+    pes, grads, nacs = update_vars(N, L, M, geo) #Update the vars to be vectors, it gives the option to mass-weigth the params
 
-    der = np.zeros((geo.ndf, T1.nstates, T1.nstates))
+    der = np.zeros((geo.ndf, T1.nstates, T1.nstates)) # Define variable der, grads in the diag and nacmes in the offdiags
     for i in range(T1.nstates):
         der[:, i, i] = grads[:, i]
         for j in range(T1.nstates):
@@ -53,7 +54,7 @@ def inp_out(i, substep, geo, T1):
 
 
 
-    return pes, der
+    return pes, der # Return both variables, potential energies and derivatives
 
 
 def transform_q_to_r(q, geo, first):
@@ -73,7 +74,7 @@ def transform_q_to_r(q, geo, first):
 
             k += 1
 
-    return r
+    return r  # vector->matrix, if first mass weights
 
 
 def create_input(trajN, istep, q, geo):
@@ -81,10 +82,10 @@ def create_input(trajN, istep, q, geo):
     ph = physconst()
     dyn = initdyn()
     if trajN == 0 and istep == 0:
-        first = False
+        first = True
     else:
         first = False
-
+    #Molpro input, it must be changed for other codes
     '''routine to create molpro input, valid for molpro2012'''
 
     file = 'molpro_traj_' + str(trajN) + '_' + str(istep) + '.inp'
@@ -103,33 +104,38 @@ def create_input(trajN, istep, q, geo):
             line_wr = 'file,3,003.molpro.wfu\n'
         f.write(line_wr)
         f.write('memory,100,m\n')
+        f.write('''gprint,civector,angles=-1,distance=-1
+ gthresh,twoint=1.0d-13
+ gthresh,energy=1.0d-7,gradient=1.0d-2\n''')
+
         f.write('punch,molpro.pun,new\n')
-        f.write('basis={\n')
-        f.write('''                                                                               !
-                                                                                 ! HYDROGEN       (4s,1p) -&gt; [2s,1p]
-  s, H ,   13.0100000,    1.9620000,   0.4446000
-  c, 1.3,   0.0196850,    0.1379770,   0.4781480
-  s, H ,    0.1220000
-  c, 1.1,   1.0000000
-  p, H ,    0.7270000
-  c, 1.1,   1.0000000
-                                                                                 !
-                                                                                 !
-                                                                                 ! CARBON       (9s,4p,1d) -&gt; [3s,2p,1d]
-  s, C , 6665.0000000, 1000.0000000, 228.0000000, 64.7100000, 21.0600000,  7.4950000,  2.7970000, 0.5215000
-  c, 1.8,   0.0006920,    0.0053290,   0.0270770,  0.1017180,  0.2747400,  0.4485640,  0.2850740, 0.0152040
-  s, C , 6665.0000000, 1000.0000000, 228.0000000, 64.7100000, 21.0600000,  7.4950000,  2.7970000, 0.5215000
-  c, 1.8,  -0.0001460,   -0.0011540,  -0.0057250, -0.0233120, -0.0639550, -0.1499810, -0.1272620, 0.5445290
-  s, C ,    0.1596000
-  c, 1.1,   1.0000000
-  p, C ,    9.4390000,    2.0020000,   0.5456000
-  c, 1.3,   0.0381090,    0.2094800,   0.5085570
-  p, C ,    0.1517000
-  c, 1.1,   1.0000000
-  d, C ,    0.5500000
-  c, 1.1,   1.0000000
- }
- ''')
+        f.write('basis=6-31g**\n')
+ #        f.write('basis={\n')
+ #        f.write('''                                                                               !
+ #                                                                                 ! HYDROGEN       (4s,1p) -&gt; [2s,1p]
+ #  s, H ,   13.0100000,    1.9620000,   0.4446000
+ #  c, 1.3,   0.0196850,    0.1379770,   0.4781480
+ #  s, H ,    0.1220000
+ #  c, 1.1,   1.0000000
+ #  p, H ,    0.7270000
+ #  c, 1.1,   1.0000000
+ #                                                                                 !
+ #                                                                                 !
+ #                                                                                 ! CARBON       (9s,4p,1d) -&gt; [3s,2p,1d]
+ #  s, C , 6665.0000000, 1000.0000000, 228.0000000, 64.7100000, 21.0600000,  7.4950000,  2.7970000, 0.5215000
+ #  c, 1.8,   0.0006920,    0.0053290,   0.0270770,  0.1017180,  0.2747400,  0.4485640,  0.2850740, 0.0152040
+ #  s, C , 6665.0000000, 1000.0000000, 228.0000000, 64.7100000, 21.0600000,  7.4950000,  2.7970000, 0.5215000
+ #  c, 1.8,  -0.0001460,   -0.0011540,  -0.0057250, -0.0233120, -0.0639550, -0.1499810, -0.1272620, 0.5445290
+ #  s, C ,    0.1596000
+ #  c, 1.1,   1.0000000
+ #  p, C ,    9.4390000,    2.0020000,   0.5456000
+ #  c, 1.3,   0.0381090,    0.2094800,   0.5085570
+ #  p, C ,    0.1517000
+ #  c, 1.1,   1.0000000
+ #  d, C ,    0.5500000
+ #  c, 1.1,   1.0000000
+ # }
+ # ''')
         f.write('''symmetry,nosym;
 orient,noorient;
 angstrom;
@@ -148,6 +154,7 @@ geom={
         f.write('}\n')
         f.write('''{multi,failsafe;
 maxiter,40;
+config,csf
 ''')
         line_wr = 'occ,' + str(ab.act_orb) + ';\n'
         line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
@@ -158,11 +165,56 @@ maxiter,40;
         f.write(line_wr2)
         f.write(line_wr3)
         f.write(line_wr4)
-        f.write('''weight,1,1,1;
+
+        f.write('''pspace,10.0        
 orbital,2140.3;
-canonical,2140.2,ci;
 ORBITAL,IGNORE_ERROR;
+ciguess,2501.2 
+save,ci=2501.2}
 ''')
+        f.write('''data,copy,2140.3,3000.2
+''')
+        f.write('''{multi,failsafe;
+maxiter,40;
+config,csf;
+''')
+        line_wr = 'occ,' + str(ab.act_orb) + ';\n'
+        line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
+        line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
+        line_wr4 = 'state,' + str(3) + ';\n'
+
+        f.write(line_wr)
+        f.write(line_wr2)
+        f.write(line_wr3)
+        f.write(line_wr4)
+
+        f.write('''pspace,10.0
+orbital,2140.3;
+dm,2140.3
+save,ci=2501.2
+diab,3000.2,save=2140.3}
+        ''')
+
+        f.write('''{multi,failsafe;
+        maxiter,40;
+        config,csf;
+        ''')
+        line_wr = 'occ,' + str(ab.act_orb) + ';\n'
+        line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
+        line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
+        line_wr4 = 'state,' + str(3) + ';\n'
+
+        f.write(line_wr)
+        f.write(line_wr2)
+        f.write(line_wr3)
+        f.write(line_wr4)
+
+        f.write('''pspace,10.0
+        orbital,2140.3;
+        dm,2140.3
+        save,ci=2501.2
+        diab,3000.2,save=2140.3
+                ''')
 
         record = 5100.1
         for i in range(dyn.nstates):
@@ -183,18 +235,18 @@ ORBITAL,IGNORE_ERROR;
 
                 if i == j:
 
-                    f.write('{FORCE;SAMC,' + str(record) + '};\n')
+                    f.write('{FORCES;SAMC,' + str(record) + '};\n')
                     record += 1
                 else:
-                    f.write('{FORCE;SAMC,' + str(record) + '};\n')
+                    f.write('{FORCES;SAMC,' + str(record) + '};\n')
                     record += 1
-        f.write('''{OPTG,maxit=1;
-coord,3n,norot;
-}
----''')
+       # f.write('pop;density,2140.3,state='+str(1.1)+'\n')
+        f.write('''---''')
 
 
 def readpun():
+    '''This routine reads a punch molpro file, it outputs as matrices the potential energies, gradients
+    and non-adiabatic coupling matrices'''
     dyn = initdyn()
     geo = initgeom()
     v_c = np.zeros(dyn.nstates)
@@ -262,7 +314,7 @@ def update_vars(v_c, grad, nacmes, geo):
         idf = 0
         for i in range(geo.natoms):
             for j in range(3):
-                grads[idf, n] = grad[j, i, n]  # / np.sqrt(geo.masses[i])
+                grads[idf, n] = (grad[j, i, n])
                 idf += 1
 
     for n in range(dyn.nstates):
@@ -270,8 +322,8 @@ def update_vars(v_c, grad, nacmes, geo):
             idf = 0
             for i in range(geo.natoms):
                 for j in range(3):
-                    nacs[idf, n, k] = nacmes[j, i, n, k]  # / np.sqrt(geo.masses[i])
-                    nacs[idf, k, n] = -nacmes[j, i, n, k]  # / np.sqrt(geo.masses[i])
+                    nacs[idf, n, k] = nacmes[j, i, n, k]  #/ np.sqrt(geo.masses[i])
+                    nacs[idf, k, n] = -nacmes[j, i, n, k] #/np.sqrt(geo.masses[i])
                     idf += 1
-
+    '''Gradients are negative as we use them as forces'''
     return pes, -grads, nacs

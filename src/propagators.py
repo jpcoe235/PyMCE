@@ -1,15 +1,16 @@
 import numpy as np
 from scipy.linalg import expm
-import src.couplings as cp
 import src.initialize_traj as ip
 import src.abinitio as ab
 from src.geometry import initgeom
+from src.geometry import singlepart
 from src.overlaps import coupdotvel
 from Wigner_dist import WPrep
 from src import bundle
 from src import buildhs
 import cmath
 from src.matexp import matexpAI
+
 
 def magnus(B, timestep):
     ii = np.complex128(0 + 1.00j)
@@ -50,12 +51,10 @@ def magnus(B, timestep):
         else:
             C_tdt = np.matmul(magnus_2(-ii * Heff_b, -ii * Heff_b, dt), C_tdt)
 
-
-
     B.setamps_bundle(C_tdt)
     print('Norm_amps_bundle :', B.get_calc_set_norm())
-    print('AMps norm:', np.sum(np.abs(C_tdt)**2))
-    B.setamps_bundle(C_tdt/cmath.sqrt(B.norm))
+    print('AMps norm:', np.sum(np.abs(C_tdt) ** 2))
+    B.setamps_bundle(C_tdt / cmath.sqrt(B.norm))
     B.settime_bundle(t1)
     return B
 
@@ -74,13 +73,14 @@ def magnus_2(H0, H1, dt):
     a0 = (H1 + H0) / 2.0 - Htr
     W1 = dt * a0
 
-    magH = matexpAI(W1) * np.exp(Hav * dt, dtype=np.complex128)
+    magH = expm(W1) * np.exp(Hav * dt, dtype=np.complex128)
 
     return magH
 
 
-def velocityverlet(T, timestep, NN):
+def velocityverlet(T, timestep, NN, calc1):
     geo = initgeom()
+    geo2 = singlepart()
     ii = np.complex128(0 + 1.00j)
     magnus_slice = 20
     nst = T.nstates
@@ -103,7 +103,11 @@ def velocityverlet(T, timestep, NN):
     F0 = 0.0
     for i in range(1, nslice + 1):
         dt = timestep / nslice
-        A1 = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, dt), Ab, dtype=np.complex128)
+        if T.nstates > 1:
+            A1 = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, dt), Ab, dtype=np.complex128)
+        else:
+            A1 = magnus_2(-ii * HE_0, -ii * HE_0, dt) * Ab
+
         Ab = A1
         T.setamplitudes_traj(A1)
         F0 += T.get_traj_force() / nslice
@@ -127,7 +131,13 @@ def velocityverlet(T, timestep, NN):
     T.setposition_traj(R1)
     T.setmomentum_traj(P1)
 
-    pes, der = ab.inp_out(NN, 0, geo, T)
+    if not calc1:
+        pes, der = ab.inp_out(NN, 0, geo, T)
+    else:
+        pes = np.sum(0.5 * geo2.K * T.getposition_traj() ** 2)
+        der = np.zeros(3)
+        for i in range(3):
+            der[i] = -geo2.K * T.getposition_traj()[i]
 
     T.setderivs_traj(der)
     T.setpotential_traj(pes)
@@ -160,7 +170,11 @@ def velocityverlet(T, timestep, NN):
         esb = (1.0 - f_b) * es0 + f_b * es1
         fsb = (1.0 - f_b) * fs0 + f_b * fs1
         csb = (1.0 - f_b) * cs0 + f_b * cs1
-        A1 = np.matmul(magnus_2(-ii * HE_b, -ii * HE_b, dt), Ab, dtype=np.complex128)
+        if T.nstates > 1:
+            A1 = np.matmul(magnus_2(-ii * HE_b, -ii * HE_b, dt), Ab, dtype=np.complex128)
+        else:
+            A1 = magnus_2(-ii * HE_b, -ii * HE_b, dt) * Ab
+
         Ab = A1
 
         T.setamplitudes_traj(A1)

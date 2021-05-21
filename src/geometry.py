@@ -1,6 +1,31 @@
 from src.constants import physconst
 import numpy as np
 
+class singlepart(): #Madeup for a single particle moving in a model potential
+    def __init__(self):
+
+        ''' Use the data for H2 system'''
+
+        ph=physconst()
+        self.natoms=1
+        self.atnum=1
+        masses_dict=get_atomic_masses()
+        self.massH=mass2au(masses_dict['H'])
+        self.mass=self.massH/2
+        self.K=0.35
+        self.rkinit=np.zeros(3)
+        self.ndf=3
+
+
+
+
+
+
+
+
+
+
+
 class initgeom():
     def __init__(self):
         ph = physconst()  # Call to a dict of physical constants

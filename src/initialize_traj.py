@@ -2,7 +2,7 @@ import numpy as np
 from Constants import physconst
 import overlaps as ov
 
-''' Class defining the initial geometry mass weighted'''
+''' Class defining the initial geometry'''
 
 
 class trajectory():
@@ -105,10 +105,17 @@ class trajectory():
         return self.stateAmpE
 
     def getamplitude_traj_i(self, i):
-        return self.stateAmpE[i]
+        if self.nstates > 1:
+            return self.stateAmpE[i]
+        else:
+            return self.stateAmpE
 
     def getforce_traj(self, i):
-        return self.derivmat[:, i, i]
+        if self.nstates>1:
+            return self.derivmat[:,i,i]
+        else:
+            return self.derivmat
+
 
     def getcoupling_traj(self, i, j):
         if i == j:
@@ -120,7 +127,10 @@ class trajectory():
         self.derivmat = value
 
     def getpotential_traj_i(self, Istate):
-        return self.PotEn[Istate]
+        if self.nstates>1:
+            return self.PotEn[Istate]
+        else:
+            return self.PotEn
 
     def getpotential_traj(self):
         E = np.double(0.0)

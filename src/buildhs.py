@@ -1,13 +1,11 @@
 import numpy as np
 
-from src import overlaps as ov
-from src import bundle
-from src import MatrixInv
-from scipy import linalg as sla
-from src import GJ_matrix_inv
-from src import Sinveigs as la
+'''This function builds the overlaps matrices (S), its inverse (Sinv) and the Hamiltonians for a bundle of trajectories'''
 
+from src import overlaps as ov
 from src import invmatmine as inv
+
+
 def buildsandh(B):
 
     overlap_tresh = 1e-8
@@ -21,12 +19,6 @@ def buildsandh(B):
     V1 = np.zeros((nstates,ntraj, ntraj),dtype=np.complex128)
     SE = np.zeros((ntraj, ntraj),dtype=np.complex128)
     Sdot = np.zeros((ntraj, ntraj),dtype=np.complex128)
-    # Sdot_fb = np.zeros((ntraj, ntraj))
-    # Sinv = np.zeros((ntraj, ntraj))
-    # Sp5i = np.zeros((ntraj, ntraj))
-    # Sp5 = np.zeros((ntraj, ntraj))
-    # Heff = np.zeros((ntraj, ntraj))
-    # Heff1 = np.zeros((ntraj, ntraj))
     Ampdot = np.zeros(ntraj)
     D0 = np.zeros((nstates, nstates, ntraj, ntraj))
     D1 = np.zeros((nstates, nstates, ntraj, ntraj))
@@ -76,31 +68,18 @@ def buildsandh(B):
                     Sdot[i,j]=ov.overlap_sdot_traj(T1,T2)
                     Sdot[j,i]=ov.overlap_sdot_traj(T2,T1)
 
-    # Oimg=np.real(-1j*S*SE)
-    # Oreal=np.real(S*SE)
-    # wimag,evimag=np.linalg.eig(Oimg)
-    # wreal, evreal = np.linalg.eig(Oreal)
-    # CEvec=evreal+1j*evimag
-    #
-    print(' in HS :',T)
+
+
+    print('T in HS :',T)
     print('S in Hamilt :', S)
     print('SE in hamilt :', SE)
 
     fullmat=S*SE
 
-    #Sinv=la.Sinv2(fullmat)
-
     Sinv=inv.invertmat(fullmat)
-   # Sinv3=np.linalg.inv(fullmat)
-
-    #Sinv2=MatrixInv.getMatrixInverse(fullmat)
-
-    #Sinv3=GJ_matrix_inv.MatrixInversion.solve(-1j*S*SE)
 
     print('Fullmat in hamilt: ', fullmat)
     print('Sinv in hamilt: ', Sinv)
-    # print('Sinv2 in hamilt: ', Sinv2)
-    # print('Sinv3 in hamilt: ', Sinv3)
 
 
     tmpmat=H-1j*Sdot

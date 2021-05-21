@@ -3,7 +3,7 @@ import src.geometry as geometry
 import src.dyn_params as dyn_params
 import src.initialize_traj as initialize_traj
 
-
+''' Not important, makes an energy correction for the COM movement'''
 def calc_ekin_tr(T, ekin_tr):
     X = T.getposition_traj()
     X_old = T.getoldpos_traj()

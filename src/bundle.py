@@ -8,22 +8,22 @@ class bundle():
 
     def __init__(self, ntraj, npart, ndim, numstates):
 
-        self.ntraj = ntraj
-        self.nstates = numstates
-        self.Traj = []
-        self.pops = np.zeros(numstates)
-        self.S = np.zeros((ntraj, ntraj), dtype=np.complex128)
-        self.H = np.zeros((ntraj, ntraj), dtype=np.complex128)
-        self.Sdot = np.zeros_like(self.S, dtype=np.complex128)
-        self.Sinv = np.zeros_like(self.S, dtype=np.complex128)
-        self.T = np.zeros_like(self.H, dtype=np.complex128)
-        self.V = np.zeros_like(self.H, dtype=np.complex128)
-        self.SE = np.zeros_like(self.H, dtype=np.complex128)
-        self.Heff = np.zeros((ntraj, ntraj), dtype=np.complex128)
-        self.Heff1 = np.zeros((ntraj, ntraj), dtype=np.complex128)
-        self.time = 0.0
-        self.norm = 1.0
-        self.amps = np.ones(ntraj)
+        self.ntraj = ntraj #Number of trajectories
+        self.nstates = numstates # numberofstates
+        self.Traj = [] #Dict for the trajectories
+        self.pops = np.zeros(numstates) #population of each state
+        self.S = np.zeros((ntraj, ntraj), dtype=np.complex128) #Overlap matrices
+        self.H = np.zeros((ntraj, ntraj), dtype=np.complex128) #Hamiltonian
+        self.Sdot = np.zeros_like(self.S, dtype=np.complex128) #Derivative of the S matrix
+        self.Sinv = np.zeros_like(self.S, dtype=np.complex128) #inverse of S
+        self.T = np.zeros_like(self.H, dtype=np.complex128) # Kinetic energy of the bundle
+        self.V = np.zeros_like(self.H, dtype=np.complex128) # Potential energy of the bundle
+        self.SE = np.zeros_like(self.H, dtype=np.complex128) #Ehrenfest overlap
+        self.Heff = np.zeros((ntraj, ntraj), dtype=np.complex128) # Effective hamiltonian (H-iS)
+        self.Heff1 = np.zeros((ntraj, ntraj), dtype=np.complex128) #Effective hamiltonian 1 (matmul Sinv,H-iS)
+        self.time = 0.0 #Time
+        self.norm = 1.0 #Nrom
+        self.amps = np.ones(ntraj) # Amplitudes C
 
     def getTraj_bundle(self):
         return self.Traj
