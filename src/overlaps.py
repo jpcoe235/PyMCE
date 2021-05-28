@@ -29,7 +29,7 @@ def overlap_d2x_cg(x1, x2, p1, p2, a1, a2):
     p12 = a1 * p2 + a2 * p1
     d2xsij = -(4j * a1 * a2 * dx * p12 + 2 * a1 * a2 * (a1 + a2) - 4 * dx ** 2 * a1 ** 2 * a2 ** 2 + p12 ** 2) / (
             a1 + a2) ** 2
-    d2xsij *= overlap_CG(x1, x2, p1, p2, a1, a2)
+   # d2xsij *= overlap_CG(x1, x2, p1, p2, a1, a2)
 
     return d2xsij
 
@@ -132,7 +132,7 @@ def overlap_v_traj(T1, T2):
 
 def overlap_ke_traj(T1, T2):
     geo = g.initgeom()
-    ke = 0.0
+    ke =np.complex(0.0+0j)
     sij = overlap_trajs(T1, T2)
     ndim = T1.ndim
     x1 = T1.getposition_traj()
@@ -150,7 +150,7 @@ def overlap_ke_traj(T1, T2):
             ke -= overlap_d2x_cg(x1[i], x2[i], p1[i], p2[i], a1[n], a2[n]) / (2.0 * T1.allmass[i])
             i = i + 1
 
-    # ke = ke * sij
+    ke = ke * sij
     ke = ke * np.dot(T1.getamplitude_traj(), T2.getamplitude_traj())
     return ke
 

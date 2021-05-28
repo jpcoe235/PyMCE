@@ -205,13 +205,13 @@ class trajectory():
         self.HE = value
 
     def phasedot(self):
-        self.dotph = self.getkineticlass() - 0.5 * np.sum(self.getwidth_traj() / self.getmass_traj())
+        self.dotph = self.getkineticlass() - 0.5 * np.sum(self.getwidth_traj() / self.getmass_traj(),dtype=np.float)
         return self.dotph
 
     def getkineticlass(self):
 
         p = self.getmomentum_traj()
-        energy = 0.5*np.sum(p*p / self.getmassall_traj(),dtype=np.double())
+        energy = 0.5*np.dot(p,p / self.getmassall_traj())
 
         return energy
 

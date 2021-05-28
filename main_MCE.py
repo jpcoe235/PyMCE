@@ -10,6 +10,7 @@ import src.Wigner_dist as Wigner_dist
 import os
 from matplotlib import pyplot as plt
 import multiprocessing as mp
+from src.outputs import output_traj as wrtout
 from src import swarm
 from src import branching as br
 
@@ -25,6 +26,8 @@ print("Number of processors: ", mp.cpu_count())
 '''Remove previous files if needed'''
 os.system('rm molpro.pun')
 os.system('rm molpro_traj*')
+os.system('rm *.wfu')
+os.system('rm /home/AndresMoreno/wfu/*')
 
 ''' call initial geometry and dynamic parameters along with pyhisical constants'''
 
@@ -70,30 +73,49 @@ T1.setwidth_traj(dyn.gamma)
 # B = swarm.createswarm(2, geo.natoms, 3, dyn.nstates)
 # B = buildhs.buildsandh(B)
 
-dt = 2.5
+dt = 2.5000000
 print(dt)
-time = np.linspace(0, 150, 1500)
-amps = np.zeros((1500, 2))
+time = np.linspace(0, 150, 15000)
+amps = np.zeros((15000, 2))
 ekin_tr = 0
 t = 0
 calc1 = False
-for i in range(1500):
-    print('coups1:', np.sqrt(np.sum(T1.getcoupling_traj(0, 0) ** 2)), np.sqrt(np.sum(T1.getcoupling_traj(0, 1) ** 2)),np.sqrt(np.sum(ovs.coupdotvel(T1,0,1)**2)))
-    print('forces:', T1.get_traj_force())
+wrtout(True,T1,0.000)
+for i in range(15000):
 
+    # for n1 in range(T1.nstates):
+    #     for n2 in range(n1,T1.nstates):
+    #         print('coupsdotvel:', ovs.coupdotvel(T1, n1, n2))
+    #         if np.abs(ovs.coupdotvel(T1, n1, n2)) > 0.005:
+    #             dt = dt / 4
+    #             print('going to smaller time-steps')
+
+
+    if i==12:
+        dt=dt/2.0000
+    if i==62:
+        dt=dt/2.00
+    if i==185:
+        dt=dt/5.00
+    print('step ', i)
     print('time:', t)
+
+    print('coups1:', np.sqrt(np.sum(T1.getcoupling_traj(0, 0) ** 2)), np.sqrt(np.sum(T1.getcoupling_traj(0, 1) ** 2)),
+          np.sqrt(np.sum(ovs.coupdotvel(T1, 0, 1) ** 2)))
+
+    print('forces:', T1.get_traj_force())
 
     #   T1,ekin_tr=ek.calc_ekin_tr(T1,ekin_tr)
     #  print(ekin_tr)
     # B = magnus(B, dt)
 
-    print('step ', i)
     print('norm1', np.sum(np.abs(T1.stateAmpE) ** 2))
 
     print('pop s01: ', np.abs(T1.stateAmpE[0]) ** 2)
-    print('pop_branching', np.real(T1.stateAmpE[0] * np.conj(T1.stateAmpE[0])))
+    print('pop_branching', np.real(np.dot(T1.stateAmpE[0], T1.stateAmpE[0])))
     print('pop s11: ', np.abs(T1.stateAmpE[1]) ** 2)
-    print('traj momentum:', T1.getmomentum_traj())
+    print('traj momentum:', T1.getmomentum_traj()[0])
+    print('traj position:', T1.getposition_traj()[0])
 
     # ratios=br.branching_ratios(B)
 
@@ -101,7 +123,10 @@ for i in range(1500):
     print('Energy1: ', energy1)
     print('Epotential:', T1.getpotential_traj())
     print('Ekinetic:', T1.getkineticlass())
-    print('Ekinetic_ov:', np.real(ovs.overlap_ke_traj(T1, T1)))
+    print('Ekinetic_ov:', np.abs(ovs.overlap_ke_traj(T1, T1)))
+    print('overlap:', ovs.overlap_trajs(T1, T1))
+    print('phase:',T1.phase)
+    print('constant_term_phase:,',0.500* np.sum(T1.getwidth_traj()/T1.getmass_traj()))
     # energy2 = B.Traj[1].getpotential_traj() + B.Traj[1].getkineticlass() - ekin_tr
     # print('Energy1: ', energy2)
     # plt.scatter(t, np.double(energy), c='blue')
@@ -109,8 +134,24 @@ for i in range(1500):
 
     amps[i, 0] = np.abs(T1.stateAmpE[0]) ** 2
     amps[i, 1] = np.abs(T1.stateAmpE[1]) ** 2
-    T1 = velocityverlet(T1, dt, i, calc1)
-    t = t + 2.5
+    Told = T1
+    T2 = velocityverlet(Told, dt, i, calc1)
+    energy2 = T2.getpotential_traj() + T2.getkineticlass() - ekin_tr
+    print('Endif:', np.abs(energy1 - energy2))
+    # if np.abs(energy1 - energy2) > 9E-7:
+    #     os.system('cp /home/AndresMoreno/wfu/' + str(i - 1) + '.check.wfu 003.molpro.wfu')
+    #     dt_2 = dt / 2.0000
+    #     for j in range(2):
+    #         Told = velocityverlet(Told, dt_2,j, calc1)
+    #     print('Adaptative timestep')
+    #     T1=Told
+    #     energy2 = T1.getpotential_traj() + T1.getkineticlass() - ekin_tr
+    #     print('Adapif:', np.abs(energy1 - energy2))
+    # else:
+    T1 = T2
+
+    t = t + dt
+    wrtout(False, T1,t)
 plt.plot(time, np.abs(amps[:, 0]), c='blue')
 plt.plot(time, np.abs(amps[:, 1]), c='red')
 

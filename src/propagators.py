@@ -101,8 +101,8 @@ def velocityverlet(T, timestep, NN, calc1):
 
     Ab = A0
     F0 = 0.0
-    for i in range(1, nslice + 1):
-        dt = timestep / nslice
+    for i in range(0, nslice):
+        dt = timestep / np.double(nslice)
         if T.nstates > 1:
             A1 = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, dt), Ab, dtype=np.complex128)
         else:
@@ -124,7 +124,7 @@ def velocityverlet(T, timestep, NN, calc1):
             cs0[:, i, j] = T.getcoupling_traj(i, j)
     T.phase += timestep / 2.0 * T.phasedot()
 
-    R1 = R0 + timestep * V0 + timestep ** 2.0 * F0 / (2.00 * M)
+    R1 = R0 + timestep * V0 + timestep ** 2.0 / 2.00 * F0 / M
 
     P1 = P0 + timestep * F0
 
@@ -163,7 +163,7 @@ def velocityverlet(T, timestep, NN, calc1):
     Ab = A0
     F1 = 0.0
     for n in range(1, nslice + 1):
-        dt = timestep / nslice
+        dt = timestep / np.double(float(nslice))
 
         f_b = (n - 0.5) / np.double(float(nslice))
         HE_b = (1.0 - f_b) * HE_0 + f_b * HE_1
@@ -180,12 +180,9 @@ def velocityverlet(T, timestep, NN, calc1):
         T.setamplitudes_traj(A1)
         T.HE = HE_1
         fb = T.compforce(A1, fsb, esb, csb)
-        F1 += fb * dt / timestep
+        F1 += fb / np.double(float(nslice))
 
     P1 = P0 + timestep * F1
-
-    T.setamplitudes_traj(Ab)
-
     T.setmomentum_traj(P1)
     T.phase += timestep / 2.0 * T.phasedot()
 
