@@ -10,6 +10,8 @@ from src import bundle
 from src import buildhs
 import cmath
 from src.matexp import matexpAI
+from src.derivatives import der
+from scipy.integrate import solve_ivp
 
 
 def magnus(B, timestep):
@@ -78,7 +80,7 @@ def magnus_2(H0, H1, dt):
     return magH
 
 
-def velocityverlet(T, timestep, NN, calc1):
+def velocityverlet(T, timestep, NN, calc1, phasewf):
     geo = initgeom()
     geo2 = singlepart()
     ii = np.complex128(0 + 1.00j)
@@ -89,7 +91,7 @@ def velocityverlet(T, timestep, NN, calc1):
     P0 = T.getmomentum_traj()
     V0 = T.getvelocity_traj()
     A0 = T.getamplitude_traj()
-
+    phase = T.getphase_traj()
     HE_0 = np.zeros((nst, nst), dtype=np.complex128)
     for n1 in range(nst):
         HE_0[n1, n1] = T.getpotential_traj_i(n1)
@@ -122,12 +124,12 @@ def velocityverlet(T, timestep, NN, calc1):
         fs0[:, i] = T.getforce_traj(i)
         for j in range(nst):
             cs0[:, i, j] = T.getcoupling_traj(i, j)
-    T.phase += timestep / 2.0 * T.phasedot()
+    phase += timestep / 2.0 * T.phasedot()
 
     R1 = R0 + timestep * V0 + timestep ** 2.0 / 2.00 * F0 / M
 
     P1 = P0 + timestep * F0
-
+    oldcoup = T.getcoupling_traj(0, 1)[0]
     T.setposition_traj(R1)
     T.setmomentum_traj(P1)
 
@@ -141,6 +143,16 @@ def velocityverlet(T, timestep, NN, calc1):
 
     T.setderivs_traj(der)
     T.setpotential_traj(pes)
+    if T.getcoupling_traj(0, 1)[0] / phasewf < 0 and abs(T.getcoupling_traj(0, 1)[0] - oldcoup) > 1.0:
+        derivs = np.zeros((T.ndim, T.nstates, T.nstates))
+        for n1 in range(T.nstates):
+            for n2 in range(T.nstates):
+                if n1 != n2:
+                    derivs[:, n1, n2] = -T.getcoupling_traj(n1, n2)
+                else:
+                    derivs[:, n1, n1] = T.getforce_traj(n1)
+
+        T.setderivs_traj(derivs)
     es1 = np.zeros(nst)
     fs1 = np.zeros((T.ndim, nst))
     cs1 = np.zeros((T.ndim, nst, nst))
@@ -184,9 +196,438 @@ def velocityverlet(T, timestep, NN, calc1):
 
     P1 = P0 + timestep * F1
     T.setmomentum_traj(P1)
-    T.phase += timestep / 2.0 * T.phasedot()
-
-    T.setphases_traj(T.phase)
+    phase += timestep / 2.0 * T.phasedot()
+    ICycle = np.floor(phase / (2.0000 * np.pi))
+    phase = phase - 2.000 * np.pi * ICycle
+    T.setphase_traj(phase)
     T.setoldpos_traj(R0)
     T.setoldmom_traj(P0)
+    return T
+
+
+def rk_method_4(T, dt, time, nstep):
+    geo = initgeom()
+    d = T.getd_traj()
+    q = T.getposition_traj()
+    p = T.getmomentum_traj()
+    s = T.getphases_traj()
+    a = T.getamplitude_traj()
+    ii = np.complex128(0 + 1j)
+    nslice = 20
+
+    nstates = T.nstates
+    epot = T.PotEn
+    ndf = T.ndim
+    grad = np.zeros((nstates, ndf))
+    nacs = np.zeros((nstates, nstates, ndf))
+    masses = T.getmassall_traj()
+    for i in range(nstates):
+        grad[i, :] = T.getforce_traj(i)
+        for j in range(nstates):
+            nacs[i, j, :] = T.getcoupling_traj(i, j)
+
+    '''first define the total energy and the d norm'''
+    dnorm = 0.00
+
+    for i in range(nstates):
+        dnorm = dnorm + np.abs(np.conj(d[i]) * d[i])
+
+    epot_av = 0.000
+    for i in range(nstates):
+        epot_av += np.abs(np.conj(d[i]) * d[i]) * epot[i]
+
+    ekin = np.sum(0.5 * p ** 2 / masses)
+
+    tot_en = ekin + epot_av
+
+    print('Total Energy:', tot_en)
+
+    qk1 = dt * p / masses
+    pk1 = dt * T.get_traj_force()
+
+    d_dot = np.zeros(nstates, dtype=np.complex128)
+    for i in range(nstates):
+        for j in range(nstates):
+            if i != j:
+                nac1d = 0.0
+                for n in range(ndf):
+                    nac1d += p[n] / masses[n] * T.getcoupling_traj(j, i)[n]
+                d_dot[i] = d_dot[i] - np.complex128(nac1d) * d[j] * np.exp(1.0j * (s[j] - s[i]), dtype=np.complex128)
+    dk1 = dt * d_dot
+
+    s_dot = np.zeros(nstates, dtype=np.complex128)  # Derivative of S (action)
+    tmp = 0.0
+    for i in range(ndf):
+        tmp += 0.5 * (p[i] / masses[i] * p[i] - q[i] * T.get_traj_force()[i])
+    for j in range(nstates):
+        s_dot[j] = tmp - (0.5 * np.dot(p, p / masses) + epot[j])
+
+    sk1 = dt * s_dot
+
+    T.setposition_traj(q + 0.5 * qk1)
+    T.setmomentum_traj(p + 0.5 * pk1)
+    T.setd_traj(d + 0.5 * dk1)
+    T.setphases_traj(s + 0.5 * sk1)
+
+    amps = T.getd_traj() * np.exp(1j * T.getphases_traj(), dtype=np.complex128)
+    T.setamplitudes_traj(amps)
+
+    epot, derivs = ab.inp_out(nstep, 0, geo, T)
+    T.setderivs_traj(derivs)
+    T.setpotential_traj(epot)
+
+    p2 = T.getmomentum_traj()
+    q2 = T.getposition_traj()
+    # a2 = T.getamplitude_traj()
+    d2 = T.getd_traj()
+    s2 = T.getphases_traj()
+
+    qk2 = dt * p2 / masses
+    pk2 = dt * T.get_traj_force()
+
+    d_dot = np.zeros(nstates, dtype=np.complex128)
+    for i in range(nstates):
+        for j in range(nstates):
+            if i != j:
+                nac1d = 0.0
+                for n in range(ndf):
+                    nac1d += p2[n] / masses[n] * T.getcoupling_traj(j, i)[n]
+                d_dot[i] = d_dot[i] - np.complex128(nac1d) * d2[j] * np.exp(1.0j * (s2[j] - s2[i]), dtype=np.complex128)
+    dk2 = dt * d_dot
+
+    s_dot = np.zeros(nstates, dtype=np.complex128)  # Derivative of S (action)
+    tmp = 0.0
+    for i in range(ndf):
+        tmp += 0.5 * (p2[i] / masses[i] * p2[i] - q2[i] * T.get_traj_force()[i])
+    for j in range(nstates):
+        s_dot[j] = tmp - (0.5 * np.dot(p2, p2 / masses) + epot[j])
+
+    sk2 = dt * s_dot
+
+    T.setposition_traj(q + 0.5 * qk2)
+    T.setmomentum_traj(p + 0.5 * pk2)
+    T.setd_traj(d + 0.5 * dk2)
+    T.setphases_traj(s + 0.5 * sk2)
+
+    amps = T.getd_traj() * np.exp(1j * T.getphases_traj(), dtype=np.complex128)
+    T.setamplitudes_traj(amps)
+
+    epot, derivs = ab.inp_out(nstep, 0, geo, T)
+    T.setderivs_traj(derivs)
+    T.setpotential_traj(epot)
+
+    p3 = T.getmomentum_traj()
+    q3 = T.getposition_traj()
+    d3 = T.getd_traj()
+    s3 = T.getphases_traj()
+
+    qk3 = dt * p3 / masses
+    pk3 = dt * T.get_traj_force()
+
+    d_dot = np.zeros(nstates, dtype=np.complex128)
+    for i in range(nstates):
+        for j in range(nstates):
+            if i != j:
+                nac1d = 0.0
+                for n in range(ndf):
+                    nac1d += p3[n] / masses[n] * T.getcoupling_traj(j, i)[n]
+                d_dot[i] = d_dot[i] - np.complex128(nac1d) * d3[j] * np.exp(1.0j * (s3[j] - s3[i]), dtype=np.complex128)
+    dk3 = dt * d_dot
+
+    s_dot = np.zeros(nstates, dtype=np.complex128)  # Derivative of S (action)
+    tmp = 0.0
+    for i in range(ndf):
+        tmp += 0.5 * (p3[i] / masses[i] * p3[i] - q3[i] * T.get_traj_force()[i])
+    for j in range(nstates):
+        s_dot[j] = tmp - (0.5 * np.dot(p3, p3 / masses) + epot[j])
+
+    sk3 = dt * s_dot
+
+    T.setposition_traj(q + qk3)
+    T.setmomentum_traj(p + pk3)
+    T.setd_traj(d + dk3)
+    T.setphases_traj(s + sk3)
+
+    amps = T.getd_traj() * np.exp(1j * T.getphases_traj(), dtype=np.complex128)
+    T.setamplitudes_traj(amps)
+    epot, derivs = ab.inp_out(nstep, 0, geo, T)
+    T.setderivs_traj(derivs)
+    T.setpotential_traj(epot)
+
+    p4 = T.getmomentum_traj()
+    q4 = T.getposition_traj()
+    d4 = T.getd_traj()
+    s4 = T.getphases_traj()
+
+    qk4 = dt * p4 / masses
+    pk4 = dt * T.get_traj_force()
+
+    d_dot = np.zeros(nstates, dtype=np.complex128)
+    for i in range(nstates):
+        for j in range(nstates):
+            if i != j:
+                nac1d = 0.0
+                for n in range(ndf):
+                    nac1d += p4[n] / masses[n] * T.getcoupling_traj(j, i)[n]
+                d_dot[i] = d_dot[i] - np.complex128(nac1d) * d4[j] * np.exp(1.0j * (s4[j] - s4[i]), dtype=np.complex128)
+    dk4 = dt * d_dot
+
+    s_dot = np.zeros(nstates, dtype=np.complex128)  # Derivative of S (action)
+    tmp = 0.0
+    for i in range(ndf):
+        tmp += 0.5 * (p4[i] / masses[i] * p4[i] - q4[i] * T.get_traj_force()[i])
+    for j in range(nstates):
+        s_dot[j] = tmp - (0.5 * np.dot(p4, p4 / masses) + epot[j])
+
+    sk4 = dt * s_dot
+
+    T.setposition_traj(q + (qk1 + 2.000 * qk2 + 2.00 * qk3 + qk4) / 6.00)
+    T.setmomentum_traj(p + (pk1 + 2.000 * pk2 + 2.00 * pk3 + pk4) / 6.00)
+    T.setd_traj(d + (dk1 + 2.000 * dk2 + 2.00 * dk3 + dk4) / 6.00)
+    T.setphases_traj(s + (sk1 + 2.000 * sk2 + 2.00 * sk3 + sk4) / 6.00)
+
+    amps = T.getd_traj() * np.exp(1j * T.getphases_traj(), dtype=np.complex128)
+    T.setamplitudes_traj(amps)
+
+    return T
+
+
+def qdot(T):
+    q_dot = T.getmomentum_traj() / T.getmassall_traj()
+    return q_dot
+
+
+def pdot(T):
+    p_dot = T.get_traj_force()
+    return p_dot
+
+
+def ddot(T):
+    nstates = T.nstates
+    d_dot = np.zeros(nstates, dtype=np.complex128)
+    d = T.getd_traj()
+    s = T.getphases_traj()
+    p = T.getmomentum_traj()
+    ndf = T.ndim
+    masses = T.getmassall_traj()
+    for i in range(nstates):
+        for j in range(nstates):
+            if i != j:
+                nac1d = 0.0
+                for n in range(ndf):
+                    nac1d += p[n] / masses[n] * T.getcoupling_traj(j, i)[n]
+                d_dot[i] = d_dot[i] - np.complex128(nac1d) * d[j] * np.exp(1.0j * (s[j] - s[i]), dtype=np.complex128)
+
+    return d_dot
+
+
+def sdot(T):
+    nstates = T.nstates
+    masses = T.getmassall_traj()
+    ndf = T.ndim
+    p = T.getmomentum_traj()
+    q = T.getposition_traj()
+
+    s_dot = np.zeros(nstates, dtype=np.complex128)  # Derivative of S (action)
+    tmp = 0.0
+    for i in range(ndf):
+        tmp += 0.5 * (p[i] / masses[i] * p[i] - q[i] * T.get_traj_force()[i])
+    for j in range(nstates):
+        s_dot[j] = tmp - (0.5 * np.dot(p, p / masses) + T.getpotential_traj_i(j))
+
+    return s_dot
+
+
+def rkf45(T, dt, time, nstep):
+    geo = initgeom()
+    d = T.getd_traj()
+    q = T.getposition_traj()
+    p = T.getmomentum_traj()
+    s = T.getphases_traj()
+    A0 = T.getamplitude_traj()
+    ii = np.complex128(0 + 1j)
+    nstates = T.nstates
+    masses = T.getmassall_traj()
+
+    time = np.linspace(0, dt, 10)
+    # Coefficients used to compute the independent variable argument of f
+
+    a2 = 2.500000000000000e-01  # 1/4
+    a3 = 3.750000000000000e-01  # 3/8
+    a4 = 9.230769230769231e-01  # 12/13
+    a5 = 1.000000000000000e+00  # 1
+    a6 = 5.000000000000000e-01  # 1/2
+
+    # Coefficients used to compute the dependent variable argument of f
+
+    b21 = 2.500000000000000e-01  # 1/4
+    b31 = 9.375000000000000e-02  # 3/32
+    b32 = 2.812500000000000e-01  # 9/32
+    b41 = 8.793809740555303e-01  # 1932/2197
+    b42 = -3.277196176604461e+00  # -7200/2197
+    b43 = 3.320892125625853e+00  # 7296/2197
+    b51 = 2.032407407407407e+00  # 439/216
+    b52 = -8.000000000000000e+00  # -8
+    b53 = 7.173489278752436e+00  # 3680/513
+    b54 = -2.058966861598441e-01  # -845/4104
+    b61 = -2.962962962962963e-01  # -8/27
+    b62 = 2.000000000000000e+00  # 2
+    b63 = -1.381676413255361e+00  # -3544/2565
+    b64 = 4.529727095516569e-01  # 1859/4104
+    b65 = -2.750000000000000e-01  # -11/40
+
+    # Coefficients used to compute local truncation error estimate.  These
+    # come from subtracting a 4th order RK estimate from a 5th order RK
+    # estimate.
+
+    r1 = 2.777777777777778e-03  # 1/360
+    r3 = -2.994152046783626e-02  # -128/4275
+    r4 = -2.919989367357789e-02  # -2197/75240
+    r5 = 2.000000000000000e-02  # 1/50
+    r6 = 3.636363636363636e-02  # 2/55
+
+    # Coefficients used to compute 4th order RK estimate
+
+    c1 = 1.157407407407407e-01  # 25/216
+    c3 = 5.489278752436647e-01  # 1408/2565
+    c4 = 5.353313840155945e-01  # 2197/4104
+    c5 = -2.000000000000000e-01  # -1/5
+
+    n = len(time)
+
+    a = 0.0
+    b = 2.5
+    t = a
+    hmax = 1.25
+    h = hmax
+    hmin = 0.01
+    tol = 1e-7
+    tol2 = 0.000001
+    T2 = T
+    while t < b:
+        T2 = T
+        energy0 = T.getkineticlass() + T.getpotential_traj()
+        print(h, energy0)
+        if t + h > b:
+            h = b - t
+
+        qk1 = h * qdot(T)
+        pk1 = h * pdot(T)
+        dk1 = h * ddot(T)
+        sk1 = h * sdot(T)
+
+        T2.setposition_traj(q + qk1)
+        T2.setmomentum_traj(p + pk1)
+        T2.setd_traj(d + dk1)
+        T2.setphases_traj(s + sk1)
+        T2.setamplitudes_traj(T2.getd_traj() * np.exp(T2.getphases_traj() * 1j, dtype=np.complex128))
+
+        epot, derivs = ab.inp_out(nstep, 0, geo, T2)
+        T.setderivs_traj(derivs)
+        T.setpotential_traj(epot)
+
+        qk2 = h * (qdot(T) + b21 * qk1)
+        pk2 = h * (pdot(T) + b21 * pk1)
+        dk2 = h * (ddot(T) + b21 * dk1)
+        sk2 = h * (sdot(T) + b21 * sk1)
+
+        T2.setposition_traj(q + qk2)
+        T2.setmomentum_traj(p + pk2)
+        T2.setd_traj(d + dk2)
+        T2.setphases_traj(s + sk2)
+        T2.setamplitudes_traj(T2.getd_traj() * np.exp(T2.getphases_traj() * 1j, dtype=np.complex128))
+
+        epot, derivs = ab.inp_out(nstep, 0, geo, T2)
+        T.setderivs_traj(derivs)
+        T.setpotential_traj(epot)
+
+        qk3 = h * (qdot(T) + b31 * qk1 + b32 * qk2)
+        pk3 = h * (pdot(T) + b31 * pk1 + b32 * pk2)
+        dk3 = h * (ddot(T) + b31 * dk1 + b32 * dk2)
+        sk3 = h * (sdot(T) + b31 * sk1 + b32 * sk2)
+
+        T2.setposition_traj(q + qk3)
+        T2.setmomentum_traj(p + pk3)
+        T2.setd_traj(d + dk3)
+        T2.setphases_traj(s + sk3)
+        T2.setamplitudes_traj(T2.getd_traj() * np.exp(T2.getphases_traj() * 1j, dtype=np.complex128))
+
+        epot, derivs = ab.inp_out(nstep, 0, geo, T2)
+        T.setderivs_traj(derivs)
+        T.setpotential_traj(epot)
+
+        qk4 = h * (qdot(T) + b41 * qk1 + b42 * qk2 + b43 * qk3)
+        pk4 = h * (pdot(T) + b41 * pk1 + b42 * pk2 + b43 * pk3)
+        dk4 = h * (ddot(T) + b41 * dk1 + b42 * dk2 + b43 * dk3)
+        sk4 = h * (sdot(T) + b41 * sk1 + b42 * sk2 + b43 * sk3)
+
+        T2.setposition_traj(q + qk4)
+        T2.setmomentum_traj(p + pk4)
+        T2.setd_traj(d + dk4)
+        T2.setphases_traj(s + sk4)
+        T2.setamplitudes_traj(T2.getd_traj() * np.exp(T2.getphases_traj() * 1j, dtype=np.complex128))
+
+        epot, derivs = ab.inp_out(nstep, 0, geo, T2)
+        T.setderivs_traj(derivs)
+        T.setpotential_traj(epot)
+
+        qk5 = h * (qdot(T) + b51 * qk1 + b52 * qk2 + b53 * qk3 + b54 * qk4)
+        pk5 = h * (pdot(T) + b51 * pk1 + b52 * pk2 + b53 * pk3 + b54 * pk4)
+        dk5 = h * (ddot(T) + b51 * dk1 + b52 * dk2 + b53 * dk3 + b54 * dk4)
+        sk5 = h * (sdot(T) + b51 * sk1 + b52 * sk2 + b53 * sk3 + b54 * sk4)
+
+        T2.setposition_traj(q + qk5)
+        T2.setmomentum_traj(p + pk5)
+        T2.setd_traj(d + dk5)
+        T2.setphases_traj(s + sk5)
+        T2.setamplitudes_traj(T2.getd_traj() * np.exp(T2.getphases_traj() * 1j, dtype=np.complex128))
+
+        epot, derivs = ab.inp_out(nstep, 0, geo, T2)
+        T.setderivs_traj(derivs)
+        T.setpotential_traj(epot)
+
+        qk6 = h * (qdot(T) + b61 * qk1 + b62 * qk2 + b63 * qk3 + b64 * qk4 + b65 * qk5)
+        pk6 = h * (pdot(T) + b61 * pk1 + b62 * pk2 + b63 * pk3 + b64 * pk4 + b65 * pk5)
+        dk6 = h * (ddot(T) + b61 * dk1 + b62 * dk2 + b63 * dk3 + b64 * dk4 + b65 * dk5)
+        sk6 = h * (sdot(T) + b61 * sk1 + b62 * sk2 + b63 * sk3 + b64 * sk4 + b65 * sk5)
+
+        T2.setposition_traj(q + qk6)
+        T2.setmomentum_traj(p + pk6)
+        T2.setd_traj(d + dk6)
+        T2.setphases_traj(s + sk6)
+        T2.setamplitudes_traj(T2.getd_traj() * np.exp(T2.getphases_traj() * 1j, dtype=np.complex128))
+
+        epot, derivs = ab.inp_out(nstep, 0, geo, T2)
+        T.setderivs_traj(derivs)
+        T.setpotential_traj(epot)
+
+        rq = abs(r1 * qk1 + r3 * qk3 + r4 * qk4 + r5 * qk5 + r6 * qk6) / h
+        rp = abs(r1 * qk1 + r3 * qk3 + r4 * qk4 + r5 * qk5 + r6 * qk6) / h
+
+        energy2 = T2.getkineticlass() + T2.getpotential_traj()
+
+        if len(np.shape(rq)) > 0:
+            rq = max(rq)
+            rp = max(rp)
+        if abs(rp) <= tol2:
+            t = t + h
+            q = q + c1 * qk1 + c3 * qk3 + c4 * qk4 + c5 * qk5
+            p = p + c1 * pk1 + c3 * pk3 + c4 * pk4 + c5 * pk5
+            d = d + c1 * dk1 + c3 * dk3 + c4 * dk4 + c5 * dk5
+            s = s + c1 * sk1 + c3 * sk3 + c4 * sk4 + c5 * sk5
+
+            T.setposition_traj(q)
+            T.setmomentum_traj(p)
+            T.setamplitudes_traj(d * np.exp(s * 1j, dtype=np.complex128))
+
+        h = h * min(max(0.84 * (tol2 / rp) ** 0.25, 0.1), 4.0)
+
+        if h > hmax:
+            h = hmax
+        elif h < hmin:
+            print("Error: stepsize should be smaller than %e." % hmin)
+            break
+
+    print(h, q[0])
+
     return T

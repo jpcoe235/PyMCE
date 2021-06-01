@@ -16,11 +16,12 @@ class trajectory():
         self.stateID = 0
         self.currentime = 0.0
         self.amp = 1.0
+        self.d = 1.0
         self.phase = 0
         self.deadtime = 0
         self.phaseE = np.zeros(self.nstates)
         self.stateAmpE = np.zeros(self.nstates)
-        self.HE = np.zeros((self.nstates, self.nstates),dtype=np.complex128)
+        self.HE = np.zeros((self.nstates, self.nstates), dtype=np.complex128)
         self.position = np.zeros(ndim)
         self.momentum = np.zeros(ndim)
         self.width = np.zeros(npart)
@@ -50,8 +51,17 @@ class trajectory():
     def gettrajid_traj(self):
         return self.trajID
 
-    def settrajid_traj(self,value):
-        self.trajID=value
+    def settrajid_traj(self, value):
+        self.trajID = value
+
+    def getpoten_traj(self):
+        return self.PotEn
+
+    def getd_traj(self):
+        return self.d
+
+    def setd_traj(self, value):
+        self.d = value
 
     def getwidth_traj(self):
         return self.width
@@ -111,11 +121,10 @@ class trajectory():
             return self.stateAmpE
 
     def getforce_traj(self, i):
-        if self.nstates>1:
-            return self.derivmat[:,i,i]
+        if self.nstates > 1:
+            return self.derivmat[:, i, i]
         else:
             return self.derivmat
-
 
     def getcoupling_traj(self, i, j):
         if i == j:
@@ -127,7 +136,7 @@ class trajectory():
         self.derivmat = value
 
     def getpotential_traj_i(self, Istate):
-        if self.nstates>1:
+        if self.nstates > 1:
             return self.PotEn[Istate]
         else:
             return self.PotEn
@@ -136,7 +145,7 @@ class trajectory():
         E = np.double(0.0)
 
         for i in range(self.nstates):
-            E += self.getpotential_traj_i(i) * np.abs(self.stateAmpE[i])**2
+            E += self.getpotential_traj_i(i) * np.abs(self.stateAmpE[i]) ** 2
 
         return E
 
@@ -157,6 +166,9 @@ class trajectory():
 
     def setphases_traj(self, value):
         self.phaseE = value
+
+    def getphases_traj(self):
+        return self.phaseE
 
     def setwidth_traj(self, value):
         self.width = value
@@ -193,7 +205,7 @@ class trajectory():
         for i in range(nstates):
             HE[i, i] = self.getpotential_traj_i(i)
             for j in range(i + 1, nstates):
-                HE[i, j] = -1j*ov.coupdotvel(self, i, j)
+                HE[i, j] = -1j * ov.coupdotvel(self, i, j)
                 HE[j, i] = -HE[i, j]
         self.setHE_traj(HE)
         return self.HE
@@ -205,13 +217,13 @@ class trajectory():
         self.HE = value
 
     def phasedot(self):
-        self.dotph = self.getkineticlass() - 0.5 * np.sum(self.getwidth_traj() / self.getmass_traj(),dtype=np.float)
+        self.dotph = self.getkineticlass() - 0.50000 * np.sum(self.getwidth_traj() / self.getmass_traj())
         return self.dotph
 
     def getkineticlass(self):
 
         p = self.getmomentum_traj()
-        energy = 0.5*np.dot(p,p / self.getmassall_traj())
+        energy = 0.5 * np.dot(p, p / self.getmassall_traj())
 
         return energy
 
@@ -223,8 +235,8 @@ class trajectory():
         for i in range(nst):
             f1 = f1 + F[:, i] * np.abs(A[i]) ** 2
         for i in range(nst):
-            for j in range(i+1,nst):
+            for j in range(i + 1, nst):
                 tmp = 2.0 * np.real(np.conj(A[i]) * A[j]) * (E[i] - E[j])
-                f2 = f2+tmp * C[:, i, j]
+                f2 = f2 + tmp * C[:, i, j]
         fvec = f1 + f2
         return fvec

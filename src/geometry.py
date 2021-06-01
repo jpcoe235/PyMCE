@@ -35,7 +35,7 @@ class initgeom():
         massesdict = get_atomic_masses()  # Mass of each atom
         mass = np.zeros((self.natoms))
         for i in range(0, self.natoms):
-            mass[i] = mass2au(massesdict[self.atnames[i]])
+            mass[i] = massesdict[self.atnames[i]]*1822.887
         self.masses = np.double(mass)
         self.rkangs = np.double(self.rk)  # List of initial atomic xyz coords, 3*N dim
        # self.rk = CofMass(self.rk, self.masses, self.natoms)
