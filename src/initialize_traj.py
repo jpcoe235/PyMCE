@@ -47,6 +47,19 @@ class trajectory():
         self.old_mom = 0.0
         self.old_amp = 0.0
         self.dotph = 0.0
+        self.phasewf=1
+
+    def getphasewf(self):
+        return self.phasewf
+
+    def setphasewf(self,value):
+        self.phasewf=value
+
+    def getcivecs(self):
+        return self.civecs
+
+    def setcivecs(self,value):
+        self.civecs=value
 
     def gettrajid_traj(self):
         return self.trajID

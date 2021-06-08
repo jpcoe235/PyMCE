@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/PyMCE.iml" filepath="$PROJECT_DIR$/.idea/PyMCE.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../PyXCAT/.idea/PyXCAT.iml" filepath="$PROJECT_DIR$/../PyXCAT/.idea/PyXCAT.iml" />
     </modules>
   </component>
 </project>

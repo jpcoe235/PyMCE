@@ -43,9 +43,9 @@ def inp_out(i, substep, geo, T1):
         if time_counter > time_to_wait:
             print('more than 1000 secs')
             break
-    N, L, M = readpun()  # Read the punch file, only PES, GRADS and NACMES are read in a (natoms,3) format
+    N, L, M,cis = readpun()  # Read the punch file, only PES, GRADS and NACMES are read in a (natoms,3) format
 
-    pes, grads, nacs = update_vars(N, L, M,
+    pes, grads, nacs, = update_vars(N, L, M,
                                    geo)  # Update the vars to be vectors, it gives the option to mass-weigth the params
 
     der = np.zeros(
@@ -56,7 +56,7 @@ def inp_out(i, substep, geo, T1):
             if i != j:
                 der[:, i, j] = nacs[:, i, j]
 
-    return pes, der  # Return both variables, potential energies and derivatives
+    return pes, der,cis  # Return both variables, potential energies and derivatives
 
 
 def transform_q_to_r(q, geo, first):
@@ -91,7 +91,7 @@ def create_input(trajN, istep, q, geo):
     '''routine to create molpro input, valid for molpro2012'''
 
     file = 'molpro_traj_' + str(trajN) + '_' + str(istep) + '.inp'
-
+    file2 = 'molpro_traj_' + str(trajN) + '_' + str(istep) + '.mld'
     # if first:
     r = transform_q_to_r(q, geo, first)
 
@@ -110,9 +110,11 @@ def create_input(trajN, istep, q, geo):
         f.write(line_wr)
 
         f.write('memory,100,m\n')
-        f.write('''gprint,civector,angles=-1,distance=-1
+
+        f.write('''gprint,orbitals,civector,angles=-1,distance=-1
  gthresh,twoint=1.0d-13
- gthresh,energy=1.0d-7,gradient=1.0d-2\n''')
+ gthresh,energy=1.0d-7,gradient=1.0d-2
+ gthresh,thrpun=0.001\n''')
 
         f.write('punch,molpro.pun,new\n')
         f.write('basis=6-31g**\n')
@@ -245,7 +247,7 @@ diab,3000.2,save=2140.3}
                 else:
                     f.write('{FORCES;SAMC,' + str(record) + '};\n')
                     record += 1
-        # f.write('pop;density,2140.3,state='+str(1.1)+'\n')
+        f.write('put,molden, '+file2+'\n' )
         f.write('''---''')
 
 
@@ -258,6 +260,9 @@ def readpun():
     grad = np.zeros((3, geo.natoms, dyn.nstates))
     nacmes = np.zeros((3, geo.natoms, dyn.nstates, dyn.nstates))
     pos = np.zeros((3, geo.natoms))
+    cis=np.zeros((40,3))
+    CIV=True
+    j=0
     with open('molpro.pun', 'r') as f:
         cV = 0
         cPes = 0
@@ -299,10 +304,19 @@ def readpun():
                         cNacs1 += 1
                     else:
                         cNacs2 += 1
+            if lines.startswith(' ') and CIV:
+                ff=lines.strip().split()
+
+                for i in range(3):
+                    cis[j,i]=float(ff[i+1])
+                j=j+1
+    total=np.count_nonzero(np.sum(cis,axis=1))
+    oneciv=int(total/3)
+    cis=cis[0:oneciv,:]
     # for i in range(2):
     #     for j in range(geo.natoms):
     #         print(grad[0, j, i], grad[1, j, i], grad[2, j, i])
-    return v_c, grad, nacmes
+    return v_c, grad, nacmes,cis
 
 
 def update_vars(v_c, grad, nacmes, geo):

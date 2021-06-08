@@ -54,7 +54,7 @@ with open('initialqp_2.dat', 'r') as f:
 T1.setposition_traj(q)
 T1.setmomentum_traj(p)
 
-pec, der = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
+pec, der,cis = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
 
 T1.setpotential_traj(pec)  # taking V(R) from ab-initio
 T1.setderivs_traj(
@@ -62,7 +62,7 @@ T1.setderivs_traj(
 T1.setmass_traj(geo.masses)  # mass of every atom in a.u (the dimmension is natoms/nparts)
 T1.setmassall_traj(
     geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
-
+T1.setcivecs(cis)
 amps = np.zeros(T1.nstates, dtype=np.complex128)
 amps[dyn.inipes - 1] = np.complex128(
     1.00 + 0.00j)  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
@@ -74,13 +74,14 @@ T1.setd_traj(amps)
 phases = np.zeros(T1.nstates)  # Phase of the wfn, would be S in the previous equation
 
 T1.setphases_traj(phases)
+
 T1.setwidth_traj(dyn.gamma)
 # B = swarm.createswarm(2, geo.natoms, 3, dyn.nstates)
 # B = buildhs.buildsandh(B)
 
 dt = 2.5
 print(dt)
-time = np.linspace(0, 150, 15000)
+time = np.linspace(0, 150, 1100)
 amps = np.zeros((15000, 2))
 ekin_tr = 0
 t = 0
@@ -88,7 +89,7 @@ calc1 = False
 wrtout(True, T1, 0.000)
 repeat=True
 T0=copy(T1)
-for i in range(15000):
+for i in range(1100):
     if i==0:
         T1=copy(T0)
 
@@ -109,7 +110,7 @@ for i in range(15000):
     print('time:', t)
 
     print('coups1:', np.sqrt(np.sum(T1.getcoupling_traj(0, 0) ** 2)), np.sqrt(np.sum(T1.getcoupling_traj(0, 1) ** 2)),
-          np.sqrt(np.sum(ovs.coupdotvel(T1, 0, 1) ** 2)))
+          (np.sum(ovs.coupdotvel(T1, 0, 1))))
 
     print('forces:', T1.get_traj_force())
 
@@ -154,22 +155,23 @@ for i in range(15000):
     T2 = velocityverlet(Told, dt, i, calc1,phasewf)
 
     energy2 = T2.getpotential_traj() + T2.getkineticlass() - ekin_tr
-    if T0.getcoupling_traj(0, 1)[0] / T2.getcoupling_traj(0, 1)[0] < 0:
-        print('phase changed')
-        print(T2.getcoupling_traj(0, 1)[0])
-        derivs = np.zeros((T2.ndim, T2.nstates, T2.nstates))
-        for n1 in range(T2.nstates):
-            for n2 in range(T2.nstates):
-                if n1 != n2:
-                    derivs[:, n1, n2] = -T2.getcoupling_traj(n1, n2)
-                else:
-                    derivs[:, n1, n1] = T2.getforce_traj(n1)
-
-        T2.setderivs_traj(derivs)
-        print(T2.getcoupling_traj(0, 1)[0])
-        print(T2.getcoupling_traj(1, 0)[0])
-        print(T2.get_traj_force())
-        print(np.abs(T2.getamplitude_traj())**2)
+    print('coupling',T2.getcoupling_traj(0,1)[0])
+    # if T0.getcoupling_traj(0, 1)[0] / T2.getcoupling_traj(0, 1)[0] < 0 and abs(T0.getcoupling_traj(0, 1)[0]-T2.getcoupling_traj(0, 1)[0])>1.5:
+    #     print('phase changed')
+    #     print(T2.getcoupling_traj(0, 1)[0])
+    #     derivs = np.zeros((T2.ndim, T2.nstates, T2.nstates))
+    #     for n1 in range(T2.nstates):
+    #         for n2 in range(T2.nstates):
+    #             if n1 != n2:
+    #                 derivs[:, n1, n2] = -T2.getcoupling_traj(n1, n2)
+    #             else:
+    #                 derivs[:, n1, n1] = T2.getforce_traj(n1)
+    #
+    #     T2.setderivs_traj(derivs)
+    #     print(T2.getcoupling_traj(0, 1)[0])
+    #     print(T2.getcoupling_traj(1, 0)[0])
+    #     print(T2.get_traj_force())
+    #     print(np.abs(T2.getamplitude_traj())**2)
 
 
     print('Endif:', np.abs(energy1 - energy2))

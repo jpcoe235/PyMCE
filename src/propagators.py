@@ -9,6 +9,7 @@ from Wigner_dist import WPrep
 from src import bundle
 from src import buildhs
 import cmath
+import os
 from src.matexp import matexpAI
 from src.derivatives import der
 from scipy.integrate import solve_ivp
@@ -129,30 +130,69 @@ def velocityverlet(T, timestep, NN, calc1, phasewf):
     R1 = R0 + timestep * V0 + timestep ** 2.0 / 2.00 * F0 / M
 
     P1 = P0 + timestep * F0
-    oldcoup = T.getcoupling_traj(0, 1)[0]
+    oldcis = T.getcivecs()
+    T.setoldpos_traj(R0)
+    T.setoldmom_traj(P0)
     T.setposition_traj(R1)
     T.setmomentum_traj(P1)
 
     if not calc1:
-        pes, der = ab.inp_out(NN, 0, geo, T)
+        pes, der, cis = ab.inp_out(NN, 0, geo, T)
     else:
         pes = np.sum(0.5 * geo2.K * T.getposition_traj() ** 2)
         der = np.zeros(3)
+        cis = 0
         for i in range(3):
             der[i] = -geo2.K * T.getposition_traj()[i]
 
     T.setderivs_traj(der)
     T.setpotential_traj(pes)
-    if T.getcoupling_traj(0, 1)[0] / phasewf < 0 and abs(T.getcoupling_traj(0, 1)[0] - oldcoup) > 1.0:
-        derivs = np.zeros((T.ndim, T.nstates, T.nstates))
-        for n1 in range(T.nstates):
-            for n2 in range(T.nstates):
-                if n1 != n2:
-                    derivs[:, n1, n2] = -T.getcoupling_traj(n1, n2)
-                else:
-                    derivs[:, n1, n1] = T.getforce_traj(n1)
+    T.setcivecs(cis)
+    phasewf = T.getphasewf()
+    ovs = np.zeros((T.nstates,T.nstates))
 
-        T.setderivs_traj(derivs)
+    for n1 in range(T.nstates):
+        for n2 in range(T.nstates):
+            ovs[n1,n2]=(np.dot(T.getcivecs()[:, n1], oldcis[:, n2]))
+    print(ovs[0,0])
+    print(ovs[1,1])
+    print(abs(ovs[0, 0]) + abs(ovs[1, 1]),abs(ovs[0, 1]) + abs(ovs[1, 0]))
+    # if abs(ovs[0, 0]) + abs(ovs[1, 1]) < abs(ovs[0, 1]) + abs(ovs[1, 0]):
+    #     print('Trying to reduce timestep')
+    #     T.setposition_traj(T.getoldpos_traj())
+    #     T.setmomentum_traj(T.getoldmom_traj())
+    #     os.system('cp /home/AndresMoreno/wfu/002.molpro.wfu /home/AndresMoreno/wfu/003.molpro.wfu')
+    #     os.system('cp 002.molpro.wfu 003.molpro.wfu')
+    #     pes, der, cis = ab.inp_out(NN, 0, geo, T)
+    #     T.setderivs_traj(der)
+    #     T.setpotential_traj(pes)
+    #     T.setcivecs(cis)
+    #     print('momentum stored: ', T.getmomentum_traj()[0])
+    #     print(T.getkineticlass() + T.getpotential_traj())
+    #
+    #     timestep = timestep / 2.00
+    #     for ts in range(2):
+    #         T = velocityverlet(T, timestep, 120+ts, calc1, phasewf)
+    #     print('returning to the main routine')
+    #     return T
+    for i in range(T.nstates):
+        ovs = np.dot(T.getcivecs()[:, i], oldcis[:, i])
+        print(ovs)
+        if abs(ovs)>0.9:
+            phasewf = phasewf * np.dot(T.getcivecs()[:, i], oldcis[:, i]) / np.abs(
+                np.dot(T.getcivecs()[:, i], oldcis[:, i]))
+
+
+    print('up to here')
+    derivs = np.zeros((T.ndim, T.nstates, T.nstates))
+    for n1 in range(T.nstates):
+        for n2 in range(T.nstates):
+            if n1 != n2:
+                derivs[:, n1, n2] = phasewf * T.getcoupling_traj(n1, n2)
+            else:
+                derivs[:, n1, n1] = T.getforce_traj(n1)
+    T.setphasewf(phasewf)
+    T.setderivs_traj(derivs)
     es1 = np.zeros(nst)
     fs1 = np.zeros((T.ndim, nst))
     cs1 = np.zeros((T.ndim, nst, nst))
