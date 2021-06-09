@@ -54,7 +54,7 @@ with open('initialqp_2.dat', 'r') as f:
 T1.setposition_traj(q)
 T1.setmomentum_traj(p)
 
-pec, der,cis = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
+pec, der,cis,configs = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
 
 T1.setpotential_traj(pec)  # taking V(R) from ab-initio
 T1.setderivs_traj(
@@ -63,6 +63,7 @@ T1.setmass_traj(geo.masses)  # mass of every atom in a.u (the dimmension is nato
 T1.setmassall_traj(
     geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
 T1.setcivecs(cis)
+T1.setconfigs(configs)
 amps = np.zeros(T1.nstates, dtype=np.complex128)
 amps[dyn.inipes - 1] = np.complex128(
     1.00 + 0.00j)  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
@@ -152,7 +153,7 @@ for i in range(1100):
 
     os.system('cp /home/AndresMoreno/wfu/003.molpro.wfu /home/AndresMoreno/wfu/002.molpro.wfu')
     os.system('cp 003.molpro.wfu 002.molpro.wfu')
-    T2 = velocityverlet(Told, dt, i, calc1,phasewf)
+    T2 = velocityverlet(Told, dt, i+1, calc1,phasewf)
 
     energy2 = T2.getpotential_traj() + T2.getkineticlass() - ekin_tr
     print('coupling',T2.getcoupling_traj(0,1)[0])

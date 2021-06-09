@@ -47,19 +47,33 @@ class trajectory():
         self.old_mom = 0.0
         self.old_amp = 0.0
         self.dotph = 0.0
-        self.phasewf=1
+        self.phasewf = 1
+        self.configs = []
+        self.file_calc = ''
+
+    def getfilecalc(self):
+        return self.file_calc
+
+    def setfilecalc(self, value):
+        self.file_calc = value
+
+    def getconfigs(self):
+        return self.configs
+
+    def setconfigs(self, value):
+        self.configs = value
 
     def getphasewf(self):
         return self.phasewf
 
-    def setphasewf(self,value):
-        self.phasewf=value
+    def setphasewf(self, value):
+        self.phasewf = value
 
     def getcivecs(self):
         return self.civecs
 
-    def setcivecs(self,value):
-        self.civecs=value
+    def setcivecs(self, value):
+        self.civecs = value
 
     def gettrajid_traj(self):
         return self.trajID

@@ -30,8 +30,9 @@ def inp_out(i, substep, geo, T1):
     # os.system('rm molpro_traj*')
     q = T1.getposition_traj()
 
-    create_input(i, substep, q, geo)  # call to create_inp function
+    file2 = create_input(i, substep, q, geo)  # call to create_inp function
 
+    T1.setfilecalc(file2)
     os.system('E:/Molpro/bin/molpro.exe -d . -s molpro_traj_' + str(i) + '_' + str(
         substep) + '.inp')  # running molpro, change it for any run in a different computer
     time_counter = 0  #
@@ -43,10 +44,10 @@ def inp_out(i, substep, geo, T1):
         if time_counter > time_to_wait:
             print('more than 1000 secs')
             break
-    N, L, M,cis = readpun()  # Read the punch file, only PES, GRADS and NACMES are read in a (natoms,3) format
+    N, L, M, cis, configs = readpun()  # Read the punch file, only PES, GRADS and NACMES are read in a (natoms,3) format
 
     pes, grads, nacs, = update_vars(N, L, M,
-                                   geo)  # Update the vars to be vectors, it gives the option to mass-weigth the params
+                                    geo)  # Update the vars to be vectors, it gives the option to mass-weigth the params
 
     der = np.zeros(
         (geo.ndf, T1.nstates, T1.nstates))  # Define variable der, grads in the diag and nacmes in the offdiags
@@ -56,7 +57,7 @@ def inp_out(i, substep, geo, T1):
             if i != j:
                 der[:, i, j] = nacs[:, i, j]
 
-    return pes, der,cis  # Return both variables, potential energies and derivatives
+    return pes, der, cis, configs  # Return both variables, potential energies and derivatives
 
 
 def transform_q_to_r(q, geo, first):
@@ -101,7 +102,7 @@ def create_input(trajN, istep, q, geo):
         f.write(
             '***,' + ab.molecule + ' ' + 'calculation of ' + str(istep) + ' step in trejectory ' + str(trajN) + '\n')
         line_wr_2 = 'file,2,' + str(trajN) + '.check.wfu,new\n'
-        #f.write(line_wr_2)
+        # f.write(line_wr_2)
         if first:
             line_wr = 'file,3,003.molpro.wfu,new\n'
         else:
@@ -161,7 +162,7 @@ geom={
         f.write('}\n')
         f.write('''{multi,failsafe;
 maxiter,40;
-config,csf
+
 ''')
         line_wr = 'occ,' + str(ab.act_orb) + ';\n'
         line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
@@ -183,7 +184,6 @@ save,ci=2501.2}
 ''')
         f.write('''{multi,failsafe;
 maxiter,40;
-config,csf;
 ''')
         line_wr = 'occ,' + str(ab.act_orb) + ';\n'
         line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
@@ -204,7 +204,6 @@ diab,3000.2,save=2140.3}
 
         f.write('''{multi,failsafe;
         maxiter,40;
-        config,csf;
         ''')
         line_wr = 'occ,' + str(ab.act_orb) + ';\n'
         line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
@@ -221,6 +220,7 @@ diab,3000.2,save=2140.3}
         dm,2140.3
         save,ci=2501.2
         diab,3000.2,save=2140.3
+   
                 ''')
 
         record = 5100.1
@@ -247,8 +247,9 @@ diab,3000.2,save=2140.3}
                 else:
                     f.write('{FORCES;SAMC,' + str(record) + '};\n')
                     record += 1
-        f.write('put,molden, '+file2+'\n' )
+        f.write('put,molden, ' + file2 + '\n')
         f.write('''---''')
+    return file2
 
 
 def readpun():
@@ -260,9 +261,10 @@ def readpun():
     grad = np.zeros((3, geo.natoms, dyn.nstates))
     nacmes = np.zeros((3, geo.natoms, dyn.nstates, dyn.nstates))
     pos = np.zeros((3, geo.natoms))
-    cis=np.zeros((40,3))
-    CIV=True
-    j=0
+    cis = np.zeros((40, 3))
+    CIV = True
+    j = 0
+    configs = []
     with open('molpro.pun', 'r') as f:
         cV = 0
         cPes = 0
@@ -305,18 +307,23 @@ def readpun():
                     else:
                         cNacs2 += 1
             if lines.startswith(' ') and CIV:
-                ff=lines.strip().split()
+                ff = lines.strip().split()
 
                 for i in range(3):
-                    cis[j,i]=float(ff[i+1])
-                j=j+1
-    total=np.count_nonzero(np.sum(cis,axis=1))
-    oneciv=int(total/3)
-    cis=cis[0:oneciv,:]
+                    cis[j, i] = float(ff[i + 1])
+                configs.append(ff[0])
+                j = j + 1
+
+    print(configs)
+    total = len(configs)
+    print('total CIS ',total)
+    oneciv = int(total / 3)
+    cis = cis[0:oneciv, :]
+    configs = configs[0:oneciv]
     # for i in range(2):
     #     for j in range(geo.natoms):
     #         print(grad[0, j, i], grad[1, j, i], grad[2, j, i])
-    return v_c, grad, nacmes,cis
+    return v_c, grad, nacmes, cis, configs
 
 
 def update_vars(v_c, grad, nacmes, geo):

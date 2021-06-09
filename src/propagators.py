@@ -9,10 +9,14 @@ from Wigner_dist import WPrep
 from src import bundle
 from src import buildhs
 import cmath
+from copy import copy
 import os
 from src.matexp import matexpAI
 from src.derivatives import der
 from scipy.integrate import solve_ivp
+from src.overlaps_wf import overlap as ovwf
+from src.mldreader import readingmolden
+from src.abinitio import ab_par
 
 
 def magnus(B, timestep):
@@ -63,6 +67,7 @@ def magnus(B, timestep):
 
 
 def magnus_2(H0, H1, dt):
+    ab2=ab_par()
     ndim = np.size(H0[:, 0])
     Hav = np.complex128(0.0)
     for i in range(ndim):
@@ -82,6 +87,7 @@ def magnus_2(H0, H1, dt):
 
 
 def velocityverlet(T, timestep, NN, calc1, phasewf):
+    ab2=ab_par()
     geo = initgeom()
     geo2 = singlepart()
     ii = np.complex128(0 + 1.00j)
@@ -133,30 +139,35 @@ def velocityverlet(T, timestep, NN, calc1, phasewf):
     oldcis = T.getcivecs()
     T.setoldpos_traj(R0)
     T.setoldmom_traj(P0)
+    T_try = copy(T)
     T.setposition_traj(R1)
     T.setmomentum_traj(P1)
 
     if not calc1:
-        pes, der, cis = ab.inp_out(NN, 0, geo, T)
+        pes, der, cis, configs = ab.inp_out(NN, 0, geo, T)
     else:
         pes = np.sum(0.5 * geo2.K * T.getposition_traj() ** 2)
         der = np.zeros(3)
         cis = 0
+        configs = 0
         for i in range(3):
             der[i] = -geo2.K * T.getposition_traj()[i]
 
     T.setderivs_traj(der)
     T.setpotential_traj(pes)
     T.setcivecs(cis)
+    T.setconfigs(configs)
     phasewf = T.getphasewf()
-    ovs = np.zeros((T.nstates,T.nstates))
+    ovs = np.zeros((T.nstates, T.nstates))
 
+    ov1, ov2 = ovwf(T_try, T)
+    print('wfoverlaps', ov1, ov2)
     for n1 in range(T.nstates):
         for n2 in range(T.nstates):
-            ovs[n1,n2]=(np.dot(T.getcivecs()[:, n1], oldcis[:, n2]))
-    print(ovs[0,0])
-    print(ovs[1,1])
-    print(abs(ovs[0, 0]) + abs(ovs[1, 1]),abs(ovs[0, 1]) + abs(ovs[1, 0]))
+            ovs[n1, n2] = (np.dot(T.getcivecs()[:, n1], oldcis[:, n2]))
+    print(ovs[0, 0])
+    print(ovs[1, 1])
+    print(abs(ovs[0, 0]) + abs(ovs[1, 1]), abs(ovs[0, 1]) + abs(ovs[1, 0]))
     # if abs(ovs[0, 0]) + abs(ovs[1, 1]) < abs(ovs[0, 1]) + abs(ovs[1, 0]):
     #     print('Trying to reduce timestep')
     #     T.setposition_traj(T.getoldpos_traj())
@@ -175,13 +186,39 @@ def velocityverlet(T, timestep, NN, calc1, phasewf):
     #         T = velocityverlet(T, timestep, 120+ts, calc1, phasewf)
     #     print('returning to the main routine')
     #     return T
+
+    print(T.getcivecs()[:, 1])
+    print(oldcis[:, 1])
     for i in range(T.nstates):
         ovs = np.dot(T.getcivecs()[:, i], oldcis[:, i])
         print(ovs)
-        if abs(ovs)>0.9:
+        if abs(ovs) > 0.9:
             phasewf = phasewf * np.dot(T.getcivecs()[:, i], oldcis[:, i]) / np.abs(
                 np.dot(T.getcivecs()[:, i], oldcis[:, i]))
+        else:
+            print('STEP TO CHECK; CI OVERLAP IS WRONG')
+            changingindex = np.ones(np.size(T_try.configs)).astype(int)
+            megamatrix1, M1, syms1 = readingmolden(T_try.getfilecalc())
+            megamatrix2, M2, syms2 = readingmolden(T.getfilecalc())
 
+            syms1=(syms1[ab2.closed_orb:]-ab2.closed_orb).astype(int)
+            syms2=(syms2[ab2.closed_orb:]-ab2.closed_orb).astype(int)
+
+            for nc in range(np.size(T_try.configs)):
+                cfg=T.configs[nc]
+                newcfg=''
+                for nstring in range(len(cfg)):
+                    newcfg+=cfg[syms2[nstring]]
+                index1 = T_try.configs.index(newcfg)
+                changingindex[nc] = int(index1)
+                print(index1)
+            newCIs = T.getcivecs()[changingindex, :]
+            print(oldcis[:, i])
+            print(newCIs[:, i])
+            print('changed CIvectors')
+
+            ovs_2 = np.dot(newCIs[:, i], oldcis[:, i])
+            print('newoverlap: ', ovs_2)
 
     print('up to here')
     derivs = np.zeros((T.ndim, T.nstates, T.nstates))
