@@ -402,10 +402,10 @@ def readingmolden(file):
         if j >= np.max(numGa):
             j = 0
             i += 1
-    symindex=np.argsort(symm).astype(int)
-    print(symindex[0:nmo-1])
-    MOs=MOs[symindex[0:nmo-1],:]
-    return megamatrix, MOs,symindex[0:nmo-1]
+    symindex = np.argsort(symm).astype(int)
+    print(symindex[0:nmo - 1])
+    MOs = MOs[symindex[0:nmo - 1], :]
+    return megamatrix, MOs, symindex[0:nmo - 1]
 
 
 def MOverlapcalc(megamatrix1, megamatrix2, MOs1, MOs2):
@@ -459,8 +459,8 @@ def MOverlapcalc(megamatrix1, megamatrix2, MOs1, MOs2):
 
             AOoverlap[n1, n2] = overlap
         # AOoverlap[n2, n1] = overlap
-   # print(AOoverlap)
-    MOoverlap = np.matmul(np.matmul(MOs1, AOoverlap), np.transpose(MOs2))
+    # print(AOoverlap)
+    # MOoverlap = np.matmul(np.matmul(np.linalg.inv(MOs1), AOoverlap), np.transpose(np.linalg.inv(MOs2)))
 
     MOverlap2 = np.zeros((np.size(MOs1[:, 0]), np.size(MOs2[:, 0])))
 
@@ -470,8 +470,8 @@ def MOverlapcalc(megamatrix1, megamatrix2, MOs1, MOs2):
                 for j in range(np.size(AOoverlap[0, :])):
                     MOverlap2[m1, m2] += MOs1[m1, i] * MOs2[m2, j] * AOoverlap[i, j]
 
-   # print('second overlap :', MOverlap2)
- #   MOoverlap = MOverlap2
+    # print('second overlap :', MOverlap2)
+    MOoverlap = MOverlap2
     return MOoverlap
 
 

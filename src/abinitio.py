@@ -27,7 +27,7 @@ class ab_par():
 
 def inp_out(i, substep, geo, T1):
     os.system('rm molpro.pun')
-    # os.system('rm molpro_traj*')
+   # os.system('rm molpro_traj*')
     q = T1.getposition_traj()
 
     file2 = create_input(i, substep, q, geo)  # call to create_inp function
@@ -38,7 +38,7 @@ def inp_out(i, substep, geo, T1):
     time_counter = 0  #
     time_to_wait = 100
     while not os.path.exists(
-            'molpro.pun'):  # Dodgy way to wait for the punch file to be created, should be other elegant way
+            'molpro.pun'):  # Dodgy way to wait for the punch file to be created, must be other way more elegant
         time.sleep(1)
         time_counter += 1
         if time_counter > time_to_wait:

@@ -16,6 +16,7 @@ import multiprocessing as mp
 from src.outputs import output_traj as wrtout
 from src import swarm
 from src import branching as br
+from  src.overlaps_wf import overlap as ovwf
 
 from src import buildhs
 import src.ekincorrection as ek
@@ -80,8 +81,8 @@ T1.setwidth_traj(dyn.gamma)
 # B = swarm.createswarm(2, geo.natoms, 3, dyn.nstates)
 # B = buildhs.buildsandh(B)
 
-dt = 2.5
-print(dt)
+dt =2.5
+print(dt*ph.au2sec/1e-15)
 time = np.linspace(0, 150, 1100)
 amps = np.zeros((15000, 2))
 ekin_tr = 0
@@ -90,7 +91,20 @@ calc1 = False
 wrtout(True, T1, 0.000)
 repeat=True
 T0=copy(T1)
-for i in range(1100):
+fig1, ax1 = plt.subplots()
+fig2, ax2 = plt.subplots()
+fig3, ax3 = plt.subplots()
+ax3.axes.set_xlabel('Time(fs)')
+ax3.axes.set_ylabel('Overlaps')
+
+ax2.axes.set_xlabel('Time(fs)')
+ax2.axes.set_ylabel('Amplitudes')
+
+ax1.axes.set_xlabel('Time(fs)')
+ax1.axes.set_ylabel('E difference')
+
+colorvec=['blue','green','black','yellow']
+for i in range(200):
     if i==0:
         T1=copy(T0)
 
@@ -139,9 +153,17 @@ for i in range(1100):
     print('constant_term_phase:,', 0.500 * np.sum(T1.getwidth_traj() / T1.getmass_traj()))
     # energy2 = B.Traj[1].getpotential_traj() + B.Traj[1].getkineticlass() - ekin_tr
     # print('Energy1: ', energy2)
-    # plt.scatter(t, np.double(energy), c='blue')
-    # plt.pause(0.1)
 
+    # ax = fig.add_subplot(111)
+
+    ax2.scatter(t * ph.au2sec / 1e-15,np.abs(T1.stateAmpE[0]) ** 2,c='red')
+    ax2.scatter(t * ph.au2sec / 1e-15, np.abs(T1.stateAmpE[1]) ** 2, c='blue')
+    plt.pause(0.1)
+
+    #  plt.scatter(t_sim, np.double(toten), c='blue')
+    # plt.scatter(t_sim, np.abs(tr.d[0] * np.conj(tr.d[0]) / dnorm), c='blue')
+    # plt.scatter(t_sim, np.abs(tr.d[1] * np.conj(tr.d[1]) / dnorm), c='red')
+    # plt.pause(0.01)
 
     amps[i, 0] = np.abs(T1.stateAmpE[0]) ** 2
     amps[i, 1] = np.abs(T1.stateAmpE[1]) ** 2
@@ -155,6 +177,25 @@ for i in range(1100):
     os.system('cp 003.molpro.wfu 002.molpro.wfu')
     T2 = velocityverlet(Told, dt, i+1, calc1,phasewf)
 
+    for ns in range(T2.nstates):
+        ovs_ci = np.dot(T2.getcivecs()[:, ns], T1.getcivecs()[:, ns])
+        if ovs_ci<0.0:
+            ccoo='red'
+        else:
+            ccoo=colorvec[ns]
+        ax3.scatter(t*ph.au2sec/1e-15, abs(ovs_ci),c=ccoo)
+    ov_11, ov_22 = ovwf(T1, T2)
+    if ov_11 < 0.0:
+        ccoo = 'red'
+    else:
+        ccoo = colorvec[2]
+    ax3.scatter(t * ph.au2sec / 1e-15, abs(ov_11), c=ccoo)
+    if ov_22 < 0.0:
+        ccoo = 'red'
+    else:
+        ccoo = colorvec[3]
+    ax3.scatter(t * ph.au2sec / 1e-15, abs(ov_22), c=ccoo)
+    plt.pause(0.1)
     energy2 = T2.getpotential_traj() + T2.getkineticlass() - ekin_tr
     print('coupling',T2.getcoupling_traj(0,1)[0])
     # if T0.getcoupling_traj(0, 1)[0] / T2.getcoupling_traj(0, 1)[0] < 0 and abs(T0.getcoupling_traj(0, 1)[0]-T2.getcoupling_traj(0, 1)[0])>1.5:
@@ -176,6 +217,8 @@ for i in range(1100):
 
 
     print('Endif:', np.abs(energy1 - energy2))
+    ax1.scatter(t * ph.au2sec / 1e-15,np.abs(energy1 - energy2) , c='blue')
+    plt.pause(0.1)
     # if np.abs(energy1 - energy2) > 9E-7:
     #     print('Trying to adapt time-step')
     #     print(T1.getmomentum_traj()[0])
@@ -196,7 +239,6 @@ for i in range(1100):
 
     t = t + dt
     wrtout(False, T1, t)
-plt.plot(time, np.abs(amps[:, 0]), c='blue')
-plt.plot(time, np.abs(amps[:, 1]), c='red')
-
-plt.show()
+fig1.savefig('energydif.png')
+fig2.savefig('amplitudes.png')
+fig3.savefig('overlaps.png')

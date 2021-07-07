@@ -67,7 +67,7 @@ def magnus(B, timestep):
 
 
 def magnus_2(H0, H1, dt):
-    ab2=ab_par()
+    ab2 = ab_par()
     ndim = np.size(H0[:, 0])
     Hav = np.complex128(0.0)
     for i in range(ndim):
@@ -87,7 +87,7 @@ def magnus_2(H0, H1, dt):
 
 
 def velocityverlet(T, timestep, NN, calc1, phasewf):
-    ab2=ab_par()
+    ab2 = ab_par()
     geo = initgeom()
     geo2 = singlepart()
     ii = np.complex128(0 + 1.00j)
@@ -160,8 +160,6 @@ def velocityverlet(T, timestep, NN, calc1, phasewf):
     phasewf = T.getphasewf()
     ovs = np.zeros((T.nstates, T.nstates))
 
-    ov1, ov2 = ovwf(T_try, T)
-    print('wfoverlaps', ov1, ov2)
     for n1 in range(T.nstates):
         for n2 in range(T.nstates):
             ovs[n1, n2] = (np.dot(T.getcivecs()[:, n1], oldcis[:, n2]))
@@ -201,26 +199,43 @@ def velocityverlet(T, timestep, NN, calc1, phasewf):
             megamatrix1, M1, syms1 = readingmolden(T_try.getfilecalc())
             megamatrix2, M2, syms2 = readingmolden(T.getfilecalc())
 
-            syms1=(syms1[ab2.closed_orb:]-ab2.closed_orb).astype(int)
-            syms2=(syms2[ab2.closed_orb:]-ab2.closed_orb).astype(int)
+            syms1 = (syms1[ab2.closed_orb:] - ab2.closed_orb).astype(int)
+            syms2 = (syms2[ab2.closed_orb:] - ab2.closed_orb).astype(int)
 
             for nc in range(np.size(T_try.configs)):
-                cfg=T.configs[nc]
-                newcfg=''
+                cfg = T.configs[nc]
+                newcfg = ''
                 for nstring in range(len(cfg)):
-                    newcfg+=cfg[syms2[nstring]]
+                    newcfg += cfg[syms2[nstring]]
                 index1 = T_try.configs.index(newcfg)
                 changingindex[nc] = int(index1)
                 print(index1)
             newCIs = T.getcivecs()[changingindex, :]
+            configs = T.getconfigs()
+            configs = [configs[i] for i in changingindex]
+            #T.setconfigs(configs)
+            signs = np.ones_like(newCIs[:, 0])
+            count = 0
+            for conf in configs:
+                if conf.replace('2', '0').replace('0', '') == T_try.configs[count].replace('2', '0').replace('0', ''):
+                    signs[count] = 1
+                else:
+                    signs[count] = -1
+                count = count + 1
             print(oldcis[:, i])
             print(newCIs[:, i])
             print('changed CIvectors')
 
-            ovs_2 = np.dot(newCIs[:, i], oldcis[:, i])
+            ovs_2 = np.dot(newCIs[:, i], signs * oldcis[:, i])
             print('newoverlap: ', ovs_2)
+            if (abs(ovs_2) < 0.9):
+                ov_11, ov_22 = ovwf(T_try, T)
+                print('wfoverlaps calculated after CI approach did not work', ov_11, ov_22)
+                phasewf = phasewf * ov_11 / abs(ov_11) * ov_22 / abs(ov_22)
+            else:
+                phasewf = phasewf * ovs_2 / abs(ovs_2)
+                print('changed phase after reordering CI vectors')
 
-    print('up to here')
     derivs = np.zeros((T.ndim, T.nstates, T.nstates))
     for n1 in range(T.nstates):
         for n2 in range(T.nstates):

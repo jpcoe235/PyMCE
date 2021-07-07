@@ -24,7 +24,7 @@ def explicitconfigs(T):
     configs = T.getconfigs()
 
     configsmod = []
-    #print(T.getconfigs())
+    # print(T.getconfigs())
     alpha = np.zeros((np.size(T.configs), int(nel / 2)))
     beta = np.zeros_like(alpha)
 
@@ -71,6 +71,8 @@ def dets(T1, T2, MOovs):
     alpha_2 = alpha_2.astype(int)
     beta_2 = beta_2.astype(int)
 
+    print('alpha_1_orbs: ', alpha_1)
+    print('alpha_2_orbs: ', alpha_2)
     confign_1 = np.size(alpha_1[:, 0])
     confign_2 = np.size(alpha_2[:, 0])
 
@@ -137,29 +139,31 @@ def dets(T1, T2, MOovs):
         for j in range(nconfs_u_alpha_2):
             mat = np.zeros((norbs_alpha_1, norbs_alpha_2))
             for k in range(norbs_alpha_1):
-                for l in range(norbs_alpha_2):
+                for kk in range(norbs_alpha_2):
                     ind1 = alpha_unique_1[i, k]
-                    ind2 = alpha_unique_2[j, l]
-                    mat[k, l] = MOovs[ind1, ind2]
-          #  print('matrix: ', i, j, mat)
+                    ind2 = alpha_unique_2[j, kk]
+                    mat[k, kk] = MOovs[ind1, ind2]
+            #  print('matrix: ', i, j, mat)
             dets_red_alpha[i, j] = np.linalg.det(mat)
-          #  print('determinant_alpha: ', i, j, dets_red_alpha[i, j])
-
+        #  print('determinant_alpha: ', i, j, dets_red_alpha[i, j])
+    count=0
     for i in range(nconfs_u_beta_1):
         for j in range(nconfs_u_beta_2):
             mat = np.zeros((norbs_beta_1, norbs_beta_2))
             for k in range(norbs_beta_1):
-                for l in range(norbs_beta_2):
+                for kk in range(norbs_beta_2):
                     ind1 = alpha_unique_1[i, k]
-                    ind2 = alpha_unique_2[j, l]
-                    mat[k, l] = MOovs[ind1, ind2]
+                    ind2 = alpha_unique_2[j, kk]
+                    mat[k, kk] = MOovs[ind1, ind2]
             dets_red_beta[i, j] = np.linalg.det(mat)
-
+            count=count+1
+    print(count)
+    print(np.size(lists_alpha_1)*np.size(lists_alpha_2))
     sign = np.ones_like(detmat_alpha)
 
     for i in range(np.size(lists_alpha_1)):
         for j in range(np.size(lists_alpha_2)):
-            if T1.configs[i].replace('2', '0') != T2.configs[j].replace('2', '0'):
+            if T1.configs[i].replace('2', '0').replace('0', '') != T2.configs[j].replace('2', '0').replace('0', ''):
                 sign[i, j] = -1.00
 
     # print('lists_alpha_1', alpha_1)
@@ -201,8 +205,10 @@ def dets(T1, T2, MOovs):
 
 
 def overlap(T1, T2):
-    megamatrix1, M1,fff = mld.readingmolden(T1.getfilecalc())
-    megamatrix2, M2,fff = mld.readingmolden(T2.getfilecalc())
+    print('file1: ', T1.getfilecalc())
+    print('file2: ', T2.getfilecalc())
+    megamatrix1, M1, fff = mld.readingmolden(T1.getfilecalc())
+    megamatrix2, M2, fff = mld.readingmolden(T2.getfilecalc())
 
     MOverlap = mld.MOverlapcalc(megamatrix1, megamatrix2, M1, M2)
 
@@ -215,11 +221,11 @@ def overlap(T1, T2):
 
     detmat_alpha, detmat_beta = dets(T1, T2, MOverlap)
 
-  #  print(detmat_alpha)
+    #  print(detmat_alpha)
     # Ground state overlap calculation
-  #  print(np.sum(CIS1[:, 0] * CIS2[:, 0]))
+    #  print(np.sum(CIS1[:, 0] * CIS2[:, 0]))
     OverlapG = 0.0
-  #  print(np.size(detmat_alpha))
+    #  print(np.size(detmat_alpha))
     for i in range(np.size(T1.getconfigs())):
         for j in range(np.size(T2.getconfigs())):
             OverlapG += CIS1[i, 0] * CIS2[j, 0] * detmat_alpha[i, j] * detmat_beta[i, j]
