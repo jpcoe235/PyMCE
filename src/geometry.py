@@ -33,9 +33,9 @@ class initgeom():
         self.natoms, self.atnames, self.rk, self.comments = process_geometry()  # Process xyz file and output required parameters
 
         massesdict = get_atomic_masses()  # Mass of each atom
-        mass = np.zeros((self.natoms))
+        mass = np.zeros((self.natoms), dtype=np.double)
         for i in range(0, self.natoms):
-            mass[i] = massesdict[self.atnames[i]]*1822.887
+            mass[i] = massesdict[self.atnames[i]]*np.double(1822.89)
         self.masses = np.double(mass)
         self.rkangs = np.double(self.rk)  # List of initial atomic xyz coords, 3*N dim
        # self.rk = CofMass(self.rk, self.masses, self.natoms)
@@ -43,7 +43,7 @@ class initgeom():
         count = 0
 
         rkbohr_mass = np.zeros((self.natoms * 3))  # Convert the coordinates to massweighted au
-        masses_rk = np.zeros((self.natoms * 3))
+        masses_rk = np.zeros((self.natoms * 3), dtype=np.double)
         for i in range(0, self.natoms):
             for j in range(0, 3):
                 rkbohr_mass[count] = self.rk[count] / ph.bohr * np.sqrt(self.masses[i])

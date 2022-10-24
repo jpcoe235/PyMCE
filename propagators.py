@@ -28,7 +28,7 @@ def magnus_2(H0, H1, dt):
 def velocityverlet(T, timestep, NN):
     geo = initgeom()
     ii = complex(0, 1.00)
-    magnus_slice = 20
+    magnus_slice = 10
     nst = T.nstates
     M = T.getmassall_traj()
     print(M)
@@ -49,7 +49,7 @@ def velocityverlet(T, timestep, NN):
     nslice = magnus_slice
 
     Ab = A0
-    F0 = 0.0
+    F0 = T.get_traj_force()/nslice
     for i in range(1, nslice + 1):
         dt = timestep / nslice
         A1 = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, dt), Ab)
@@ -104,7 +104,10 @@ def velocityverlet(T, timestep, NN):
         dt = timestep / nslice
 
         f_b = (n - 0.5) / np.double(float(nslice))
+        HE_b_dima=(n*HE_1+(10-n)*HE_0)*0.1
+        print(HE_b_dima)
         HE_b = (1.0 - f_b) * HE_0 + f_b * HE_1
+        print(HE_b)
         esb = (1.0 - f_b) * es0 + f_b * es1
         fsb = (1.0 - f_b) * fs0 + f_b * fs1
         csb = (1.0 - f_b) * cs0 + f_b * cs1

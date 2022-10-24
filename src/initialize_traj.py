@@ -260,10 +260,10 @@ class trajectory():
         f2 = np.zeros(self.ndim)
 
         for i in range(nst):
-            f1 = f1 + F[:, i] * np.abs(A[i]) ** 2
+            f1 = f1 + F[:, i] * abs(A[i]) ** 2
         for i in range(nst):
             for j in range(i + 1, nst):
-                tmp = 2.0 * np.real(np.conj(A[i]) * A[j]) * (E[i] - E[j])
+                tmp = np.cdouble(2.0) * np.real(np.conj(A[i]) * A[j]) * (E[i] - E[j])
                 f2 = f2 + tmp * C[:, i, j]
         fvec = f1 + f2
         return fvec

@@ -4,6 +4,7 @@ from src.geometry import initgeom
 import time
 import numpy as np
 import os
+from decimal import Decimal
 
 ''' Routine to call and read parameters from molpro, it is recommended to check the convergence of the calculation before starting
 a dynamics calculation'''
@@ -33,7 +34,7 @@ def inp_out(i, substep, geo, T1):
     file2 = create_input(i, substep, q, geo)  # call to create_inp function
 
     T1.setfilecalc(file2)
-    os.system('E:/Molpro/bin/molpro.exe -d . -s molpro_traj_' + str(i) + '_' + str(
+    os.system('molpro -d . -s molpro_traj_' + str(i) + '_' + str(
         substep) + '.inp')  # running molpro, change it for any run in a different computer
     time_counter = 0  #
     time_to_wait = 100
@@ -66,15 +67,18 @@ def transform_q_to_r(q, geo, first):
     k = 0
     r = np.zeros((3, geo.natoms))
 
-    diff = np.double(q)
+    diff = np.longdouble(q)
     for i in range(geo.natoms):
         for j in range(3):
             if first:
-                mass_inv = 1.0 / np.sqrt(geo.masses[i])
+                mass_inv = 1.0/np.sqrt(geo.masses[i])
+                r[j, i] = geo.rk[k] - (mass_inv * (diff[k]) * ph.bohr)
             else:
                 mass_inv = 1.0
-            r[j, i] = mass_inv * (diff[k]) * ph.bohr
 
+                r[j, i] = mass_inv * (diff[k]) * np.longdouble(5.2917721092e-1)
+               # r[j, i] = geo.rk[k]-(mass_inv * (diff[k]) * ph.bohr)
+            print(diff[k], r[j,i])
             k += 1
 
     return r  # vector->matrix, if first mass weights
@@ -104,10 +108,10 @@ def create_input(trajN, istep, q, geo):
         line_wr_2 = 'file,2,' + str(trajN) + '.check.wfu,new\n'
         # f.write(line_wr_2)
         if first:
-            line_wr = 'file,3,003.molpro.wfu,new\n'
+            line_wr = 'file,3,004.molpro.wfu,new\n'
         else:
-            line_wr = 'file,3,003.molpro.wfu\n'
-
+            line_wr = 'file,3,004.molpro.wfu\n'
+        
         f.write(line_wr)
 
         f.write('memory,100,m\n')
@@ -119,8 +123,8 @@ def create_input(trajN, istep, q, geo):
 
         f.write('punch,molpro.pun,new\n')
         f.write('basis=6-31g**\n')
-        #        f.write('basis={\n')
-        #        f.write('''                                                                               !
+        # f.write('basis={\n')
+        # f.write('''                                                                               !
         #                                                                                 ! HYDROGEN       (4s,1p) -&gt; [2s,1p]
         #  s, H ,   13.0100000,    1.9620000,   0.4446000
         #  c, 1.3,   0.0196850,    0.1379770,   0.4781480
@@ -149,17 +153,21 @@ def create_input(trajN, istep, q, geo):
 orient,noorient;
 angstrom;
 geomtype=xyz;
-geom={
-        ''')
-        f.write(str(geo.natoms) + '\n')
-        f.write('\n')
+''')
+        if first:
+            f.write('geom=geom_0.in \n')
+        else:
+            f.write('geom={'+'\n')
+            f.write(str(geo.natoms) + '\n')
+            f.write('\n')
 
-        for i in range(geo.natoms):
-            line_wr = geo.atnames[i] + ' ' + str(r[0, i]) + ' ' + str(r[1, i]) + ' ' + str(r[2, i]) + '\n'
+            for i in range(geo.natoms):
+                line_wr = geo.atnames[i] + ' ' + str("{:.16E}".format(Decimal(r[0, i]))) + ' ' + \
+                          str("{:.16E}".format(Decimal(r[1, i]))) + ' ' + str("{:.16E}".format(Decimal(r[2, i]))) + '\n'
             # print(file)
             # print(line_wr)
-            f.write(line_wr)
-        f.write('}\n')
+                f.write(line_wr)
+            f.write('}\n')
         f.write('''{multi,failsafe;
 maxiter,40;
 
@@ -329,9 +337,9 @@ def readpun():
 def update_vars(v_c, grad, nacmes, geo):
     dyn = initdyn()
     '''Update the variables and store them using vectorization'''
-    pes = np.zeros(dyn.nstates)
-    grads = np.zeros((geo.ndf, dyn.nstates))
-    nacs = np.zeros((geo.ndf, dyn.nstates, dyn.nstates))
+    pes = np.zeros(dyn.nstates, dtype=np.double)
+    grads = np.zeros((geo.ndf, dyn.nstates), dtype=np.double)
+    nacs = np.zeros((geo.ndf, dyn.nstates, dyn.nstates), dtype=np.double)
     for i in range(
             dyn.nstates):  # Updates pes energy with the reference value (value corresponding to the initial geometry GS)
         pes[i] = v_c[i] - dyn.e_ref
