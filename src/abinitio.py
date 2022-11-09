@@ -78,7 +78,7 @@ def transform_q_to_r(q, geo, first):
 
                 r[j, i] = mass_inv * (diff[k]) * np.longdouble(5.2917721092e-1)
                # r[j, i] = geo.rk[k]-(mass_inv * (diff[k]) * ph.bohr)
-            print(diff[k], r[j,i])
+
             k += 1
 
     return r  # vector->matrix, if first mass weights

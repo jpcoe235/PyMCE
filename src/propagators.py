@@ -370,7 +370,7 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
     while(time<=finaltime):
 
         nslice = magnus_slice
-        print('He_0=', HE_0)
+
         Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(20.0000)), A0, dtype=np.clongdouble)
 
         F0 = T.compforce(A0, fs0, es0, cs0)/10.0000000
@@ -382,10 +382,10 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
                                dtype=np.clongdouble)
             else:
                 A1 = magnus_2(-ii * HE_0, -ii * HE_0, dt) * Ab
-            print('first prop', A1[0])
+
             Ab = A1
             F0 += T.compforce(A1, fs0, es0, cs0) / np.longdouble(10.000)
-        print('first step A and Forces: ', F0)
+
         T.setamplitudes_traj(A0)
 
         R1 = R0 + timestep * V0 + timestep ** 2.0 / 2.00 * F0 / M
@@ -406,7 +406,7 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
         T.setcivecs(cis)
         T.setconfigs(configs)
         phasewf = T.getphasewf()
-        print('phasewf= ', phasewf)
+
         ovs = np.zeros((T.nstates, T.nstates))
         es1 = np.zeros(nst, dtype=np.longdouble)
         fs1 = np.zeros((T.ndim, nst), dtype=np.longdouble)
@@ -439,8 +439,7 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
             for n2 in range(n1 + 1, nst):
                 HE_1[n1, n2] = np.clongdouble(-ii * np.sum(V1 * cs1[:, n1, n2], dtype=np.longdouble))
                 HE_1[n2, n1] = -HE_1[n1, n2]
-        print('He_0=' + str(HE_0) + '\n')
-        print('He_1=' + str(HE_1) + '\n')
+
         Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(20.0)), A0, dtype=np.clongdouble)
         esb = np.longdouble(0.05) * es1 + np.longdouble(0.95) * es0
         fsb = np.longdouble(0.05) * fs1 + np.longdouble(0.95) * fs0
@@ -448,11 +447,11 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
         F1 = T.compforce(Ab, fsb, esb, csb) / np.longdouble(10.0)
 
         for n in range(1, 10):
-            print(n)
+
 
             HE_b = (n * HE_1 + (10.0000 - n) * HE_0) * 0.1
 
-            print(Ab)
+
             esb = (0.1 * n + np.longdouble(0.05)) * es1 + (np.longdouble(0.95) - n * 0.1) * es0
             fsb = (0.1 * n + np.longdouble(0.05)) * fs1 + (np.longdouble(0.95) - n * 0.1) * fs0
             csb = (0.1 * n + np.longdouble(0.05)) * cs1 + (np.longdouble(0.95) - n * 0.1) * cs0
@@ -474,7 +473,7 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
         #     fb = T.compforce(A1, fsb, esb, csb)
         #     F1 += fb / np.longdouble(float(nslice))
         A1 = np.matmul(magnus_2(-ii * HE_1, -ii * HE_1, timestep / 20.), Ab, dtype=np.clongdouble)
-        print(A1)
+
 
         T.setamplitudes_traj(A1)
         P1 = P0 + timestep * F1
