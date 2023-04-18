@@ -42,56 +42,47 @@ def overlap_dx_cg(x1, x2, p1, p2, a1, a2):
     return dxCG
 
 
-def overlap_trajs(T1, T2):
+def overlap_trajs(T1, T2,t0):
     geo = g.initgeom()
 
-    w1 = T1.getwidth_traj()
-    w2 = T2.getwidth_traj()
-    ph1 = T1.getphase_traj()
-    ph2 = T2.getphase_traj()
+    w1 = T1.get_widths_time(t0)
+    w2 = T2.get_widths_time(t0)
+    ph1 = T1.get_time_phases(t0)
+    ph2 = T2.get_time_phases(t0)
 
-    ndim = T1.ndim
+    ndim = np.size(w1)
 
     S = np.exp(1j * (-ph1 + ph2), dtype=np.complex128)*np.complex128(1.000+0j)
     i = 0
 
     for n in range(geo.natoms):
         for j in range(3):
-            a1 = w1[n]
-            a2 = w2[n]
-            x1 = T1.getposition_traj()[i]
-            x2 = T2.getposition_traj()[i]
-            p1 = T1.getmomentum_traj()[i]
-            p2 = T2.getmomentum_traj()[i]
+            a1 = w1[i]
+            a2 = w2[i]
+            x1 = T1.get_pos_time(t0)[i]
+            x2 = T2.get_pos_time(t0)[i]
+            p1 = T1.get_mom_time(t0)[i]
+            p2 = T2.get_mom_time(t0)[i]
 
             S = S * overlap_CG(x1, x2, p1, p2, a1, a2)
+            Sdx = overlap_dx_cg(x1,x2,p1,p2,a1,a2)
+            Sd2x= overlap_d2x_cg(x1,x2,p1,p2,a1,a2)
+            Sdp= overlap_dp_traj(x1,x2,p1,p2,a1,a2)
             i = i + 1
-    return S
+
+    return S, Sdx, Sd2x,Sdp
 
 
-def overlap_dp_traj(T1, T2):
-    geo = g.initgeom()
+def overlap_dp_traj(x1,x2,p1,p2,a1,a2):
 
-    x1 = T1.getposition_traj()
-    x2 = T2.getposition_traj()
-
-    p1 = T1.getmomentum_traj()
-    p2 = T2.getmomentum_traj()
-
-    a1 = T1.getwidth_traj()
-    a2 = T2.getwidth_traj()
 
     dx = x1 - x2
     dp = p1 - p2
 
-    ndim = T1.ndim
-    pref = np.zeros(ndim, dtype=np.complex128)
-    i = 0
-    for n in range(geo.natoms):
-        for j in range(3):
-            pref[i] = 0.5 * (dp[i] + 2j * a1[n] * dx[i]) / (a1[n] + a2[n])
-            pref[i] *= overlap_CG(x1[i], x2[i], p1[i], p2[i], a1[n], a2[n])
-            i += 1
+    ndim = np.size(x1)
+    pref = 0.5 * (dp + 2j * a1 * dx) / (a1 + a2)
+    pref *= overlap_CG(x1, x2, p1, p2, a1, a2)
+
     dpSij = pref
 
     return dpSij
@@ -132,7 +123,7 @@ def overlap_v_traj(T1, T2):
 
 def overlap_ke_traj(T1, T2):
     geo = g.initgeom()
-    ke =np.complex(0.0+0j)
+    ke =complex(0.0+0j)
     sij = overlap_trajs(T1, T2)
     ndim = T1.ndim
     x1 = T1.getposition_traj()
@@ -155,26 +146,25 @@ def overlap_ke_traj(T1, T2):
     return ke
 
 
-def overlap_dx_traj(T1, T2):
+def overlap_dx_traj(T1, T2,t0):
     geo = g.initgeom()
 
-    sij = overlap_trajs(T1, T2)
+
     ndim = T1.ndim
-    x1 = T1.getposition_traj()
-    x2 = T2.getposition_traj()
+    x1 = T1.get_pos_time(t0)
+    x2 = T2.get_pos_time(t0)
 
-    p1 = T1.getmomentum_traj()
-    p2 = T2.getmomentum_traj()
+    p1 = T1.get_mom_time(t0)
+    p2 = T2.get_mom_time(t0)
 
-    a1 = T1.getwidth_traj()
-    a2 = T2.getwidth_traj()
+    a1 = T1.get_widths_time(t0)
+    a2 = T2.get_widths_time(t0)
 
     dxsij = np.zeros(ndim, dtype=np.complex128)
     i = 0
-    for n in range(geo.natoms):
-        for j in range(3):
-            dxsij[i] = overlap_dx_cg(x1[i], x2[i], p1[i], p2[i], a1[n], a2[n])
-            i += 1
+    for n in range(ndim):
+            dxsij[n] = overlap_dx_cg(x1[n], x2[n], p1[n], p2[n], a1[n], a2[n])
+
     #dxsij = dxsij * sij
 
     return dxsij

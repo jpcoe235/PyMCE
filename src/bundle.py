@@ -6,7 +6,7 @@ from src import branching
 
 class bundle():
 
-    def __init__(self, ntraj, npart, ndim, numstates):
+    def __init__(self, ntraj, numstates):
 
         self.ntraj = ntraj #Number of trajectories
         self.nstates = numstates # numberofstates
@@ -100,7 +100,7 @@ class bundle():
     def settime_bundle(self, value):
         self.time = value
 
-    def setnorm_bundle(self):
+    def setnorm_bundle(self,value):
         self.norm = value
 
     def addtraj(self, newtraj):

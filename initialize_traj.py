@@ -16,14 +16,14 @@ class trajectory():
         self.stateID = 0
         self.currentime = 0.0
         self.amp = 0
-        self.phase = 0
+        self.phase = 0.0
         self.deadtime = 0
         self.phaseE = np.zeros(self.nstates)
         self.stateAmpE = np.zeros(self.nstates)
         self.HE = np.zeros((self.nstates, self.nstates))
         self.position = np.zeros(ndim)
         self.momentum = np.zeros(ndim)
-        self.width = np.zeros(npart)
+        self.width = np.zeros(ndim)
         self.mass = np.zeros(npart)
         self.allmass = np.zeros(ndim)
         self.transdipole = 0
@@ -189,8 +189,9 @@ class trajectory():
         self.HE = value
 
     def phasedot(self):
-        self.dotph = getkineticlass(self) - 0.5 * np.sum(self.getwidth_traj() / self.getmass_traj())
-        return self.dotph
+        self.dotph = getkineticlass(self) - 0.5 * np.sum(self.getwidth_traj() / self.getmassall_traj())
+        print('wtf:',self.dotph)
+        return np.real(self.dotph)
 
 
 def compforce(T, A, F, E, C):

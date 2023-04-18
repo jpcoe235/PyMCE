@@ -18,6 +18,7 @@ from src.outputs import output_traj as wrtout
 from src import swarm
 from src import branching as br
 from src.overlaps_wf import overlap as ovwf
+from src.Full_traj import  full_trajectory
 
 from src import buildhs
 import src.ekincorrection as ek
@@ -123,20 +124,6 @@ colorvec = ['blue', 'green', 'black', 'yellow']
 for i in range(1):
     if i == 0:
         T1 = copy(T0)
-
-    # for n1 in range(T1.nstates):
-    #     for n2 in range(n1,T1.nstates):
-    #         print('coupsdotvel:', ovs.coupdotvel(T1, n1, n2))
-    #         if np.abs(ovs.coupdotvel(T1, n1, n2)) > 0.005:
-    #             dt = dt / 4
-    #             print('going to smaller time-steps')
-
-    # if i == 10:
-    #     dt = dt / 4.0000
-    # if i == 62:
-    #     dt = dt / 2.00
-    # if i == 185:
-    #     dt = dt / 5.00
     print('step ', i)
     print('time:', t)
 
@@ -165,26 +152,21 @@ for i in range(1):
     print('Energy1: ', energy1)
     print('Epotential:', T1.getpotential_traj())
     print('Ekinetic:', 0.5*np.sum(T1.getmomentum_traj()*T1.getvelocity_traj()))
-    print('Ekinetic_ov:', np.abs(ovs.overlap_ke_traj(T1, T1)))
-    print('overlap:', ovs.overlap_trajs(T1, T1))
+    #print('Ekinetic_ov:', np.abs(ovs.overlap_ke_traj(T1, T1)))
+    #print('overlap:', ovs.overlap_trajs(T1, T1))
     print('phase:', T1.phase)
-    print('constant_term_phase:,', 0.500 * np.sum(T1.getwidth_traj() / T1.getmass_traj()))
+    print('constant_term_phase:,', 0.500 * np.sum(T1.getwidth_traj() / T1.getmassall_traj()))
     # energy2 = B.Traj[1].getpotential_traj() + B.Traj[1].getkineticlass() - ekin_tr
     # print('Energy1: ', energy2)
 
     # ax = fig.add_subplot(111)
 
-    ax2.scatter(t * ph.au2sec / 1e-15, np.abs(T1.stateAmpE[0]) ** 2, c='red')
-    ax2.scatter(t * ph.au2sec / 1e-15, np.abs(T1.stateAmpE[1]) ** 2, c='blue')
-    plt.pause(0.1)
+    #ax2.scatter(t * ph.au2sec / 1e-15, np.abs(T1.stateAmpE[0]) ** 2, c='red')
+    #ax2.scatter(t * ph.au2sec / 1e-15, np.abs(T1.stateAmpE[1]) ** 2, c='blue')
+    #plt.pause(0.1)
     f.write(str(t) + ' ' + str(np.abs(T1.stateAmpE[0]) ** 2) + ' ' + str(np.abs(T1.stateAmpE[1]) ** 2) + '\n')
     f2.write(str(t) + ' ' + str(T1.getcoupling_traj(0,1)[0])+'\n')
 
-
-    #  plt.scatter(t_sim, np.longdouble(toten), c='blue')
-    # plt.scatter(t_sim, np.abs(tr.d[0] * np.conj(tr.d[0]) / dnorm), c='blue')
-    # plt.scatter(t_sim, np.abs(tr.d[1] * np.conj(tr.d[1]) / dnorm), c='red')
-    # plt.pause(0.01)
 
     amps[i, 0] = np.abs(T1.stateAmpE[0]) ** 2
     amps[i, 1] = np.abs(T1.stateAmpE[1]) ** 2
@@ -196,8 +178,11 @@ for i in range(1):
     phasewf=1
    # os.system('cp /home/AndresMoreno/wfu/003.molpro.wfu /home/AndresMoreno/wfu/002.molpro.wfu')
    # os.system('cp 003.molpro.wfu 002.molpro.wfu')
-    T2 = velocityverlet_dima(Told, 5000, dt,  i + 1, calc1, phasewf)
+    FT,T2,Bundle = velocityverlet_dima(Told,0.8 , dt,  i + 1, calc1, phasewf)
 
+
+    print(FT.get_amps())
+    exit
     for ns in range(T2.nstates):
         ovs_ci = np.dot(T2.getcivecs()[:, ns], T1.getcivecs()[:, ns])
         if ovs_ci < 0.0:

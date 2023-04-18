@@ -1,5 +1,8 @@
 import numpy as np
+import shutil
 from scipy.linalg import expm
+import src.overlaps as ov
+from types import SimpleNamespace
 import src.initialize_traj as ip
 import src.abinitio as ab
 from src.geometry import initgeom
@@ -8,7 +11,7 @@ from src.overlaps import coupdotvel
 from Wigner_dist import WPrep
 from src import bundle
 from src import buildhs
-from expomol import pade_mol as pm
+# from expomol import pade_mol as pm
 import decimal as dD
 import cmath
 from copy import copy
@@ -19,6 +22,8 @@ from scipy.integrate import solve_ivp
 from src.overlaps_wf import overlap as ovwf
 from src.mldreader import readingmolden
 from src.abinitio import ab_par
+from src.Full_traj import full_trajectory
+from src.constants import physconst
 
 
 def magnus(B, timestep):
@@ -83,7 +88,7 @@ def magnus_2(H0, H1, dt):
     a0 = (H1 + H0) / 2.0 - Htr
     W1 = dt * a0
 
-    expW2 = pm.exp_pade(W1)
+    expW2 = expm(W1)
 
     magH = expW2 * np.exp(Hav * dt, dtype=np.clongdouble)
 
@@ -333,9 +338,34 @@ def velocityverlet(T, timestep, NN, calc1, phasewf):
     return T
 
 
-def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
+def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
+    File_trajs_x = 'Trajectory_x_1.dat'
+    File_trajs_p = 'Trajectory_p_1.dat'
+    File_amps = 'Trajectory_amp_1.dat'
+    Folder_abinitio = 'Trajectory_EE'
+    if os.path.exists(Folder_abinitio) and os.path.isdir(Folder_abinitio):
+        shutil.rmtree(Folder_abinitio)
+    os.mkdir(Folder_abinitio)
+
+    trajs_x = open(File_trajs_x, 'w')
+    trajs_p = open(File_trajs_p, 'w')
+    trajs_amps = open(File_amps, 'w')
+
+    phasefile = open('phase.dat', 'w')
+
+    clonning = True
+    trains = True
+    n_tr = 3
+    maxcl = 10
+    ncl = 0
+    ph = physconst()
+    finaltime = finaltime / (ph.au2sec / 1E-15)
+    print('finaltime=', finaltime)
     np.set_printoptions(precision=32)
-    time=0.00000
+    FT = full_trajectory(finaltime, timestep, T.ndim, T.nstates)
+    time = 0.00000
+    FT.set_time_time(0, time)
+
     f = open("N_mine.dat", 'w', buffering=1)
     ab2 = ab_par()
     geo = initgeom()
@@ -343,13 +373,32 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
     ii = np.clongdouble(0.00 + 1.00000000000j)
     magnus_slice = 10
     nst = T.nstates
+    widths = np.zeros(T.ndim)
+    widths[:] = 4.7
+    widths[0:6] = 22.7
     M = T.getmassall_traj()
     R0 = T.getposition_traj()
     P0 = T.getmomentum_traj()
     V0 = T.getvelocity_traj()
     A0 = T.getamplitude_traj()
     HE_0 = np.zeros((nst, nst), dtype=np.clongdouble)
-
+    phase = np.real(T.getphase_traj())
+    width = T.getwidth_traj()
+    print('phase:', phase)
+    trajs_x.write('0.0000\n')
+    trajs_p.write('0.0000\n')
+    natoms = int(np.size(R0) / 3)
+    for i in range(natoms):
+        trajs_x.write(str([i for i in np.real(R0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
+        trajs_x.write('\n')
+        trajs_p.write(str([i for i in np.real(P0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
+        trajs_p.write('\n')
+    trajs_amps.write('0.0000\n')
+    trajs_amps.write(str(A0) + '\n')
+    FT.set_pos_time(0, R0)
+    FT.set_mom_time(0, P0)
+    FT.set_time_phase(phase, 0)
+    FT.set_widths(width)
     for n1 in range(nst):
         HE_0[n1, n1] = T.getpotential_traj_i(n1)
         for n2 in range(n1 + 1, nst):
@@ -366,16 +415,29 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
         for j in range(nst):
             cs0[:, i, j] = T.getcoupling_traj(i, j)
 
-    F0 = T.compforce(A0, fs0, es0, cs0) / np.longdouble(10.000)
-    while(time<=finaltime):
+    derivs = np.zeros((T.ndim, nst, nst))
+    for n1 in range(T.nstates):
+        for n2 in range(T.nstates):
+            if n1 != n2:
+                derivs[:, n1, n2] = cs0[:, n1, n2]
+            else:
+                derivs[:, n1, n1] = fs0[:, n1]
+    FT.set_derivs_time(0, derivs)
+    FT.set_amps_time(0, A0)
+
+    print('Prueba printing', FT.get_amps_time(0))
+
+    # F0 = T.compforce(A0, fs0, es0, cs0) / np.longdouble(10.000)
+    nstep = 0
+    while time <= finaltime:
 
         nslice = magnus_slice
 
         Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(20.0000)), A0, dtype=np.clongdouble)
 
-        F0 = T.compforce(A0, fs0, es0, cs0)/10.0000000
+        F0 = T.compforce(A0, fs0, es0, cs0) / 10.0000000
         for i in range(1, 10):
-            print(i)
+
             dt = timestep / np.longdouble(nslice)
             if T.nstates > 1:
                 A1 = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(10.0000)), Ab,
@@ -387,7 +449,11 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
             F0 += T.compforce(A1, fs0, es0, cs0) / np.longdouble(10.000)
 
         T.setamplitudes_traj(A0)
-
+        print(0.5 * np.sum(widths / M))
+        print(0.5 * np.sum(np.real(P0) ** 2 / M))
+        phase += timestep / 2.0 * (0.5 * np.sum(np.real(P0) ** 2 / M) - 0.5 * np.sum(widths / M))
+        phasefile.write('phase2: ' + str(phase) + '\n')
+        print('phase:', phase)
         R1 = R0 + timestep * V0 + timestep ** 2.0 / 2.00 * F0 / M
         P1 = P0 + timestep * F0
         V1 = P1 / M
@@ -400,14 +466,15 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
         T.setmomentum_traj(P1)
 
         pes, der, cis, configs = ab.inp_out(NN, 0, geo, T)
-        print('energies2= ', pes)
+
         T.setderivs_traj(der)
         T.setpotential_traj(pes)
+
+        FT.set_potential_time(pes, NN)
+
         T.setcivecs(cis)
         T.setconfigs(configs)
-        phasewf = T.getphasewf()
 
-        ovs = np.zeros((T.nstates, T.nstates))
         es1 = np.zeros(nst, dtype=np.longdouble)
         fs1 = np.zeros((T.ndim, nst), dtype=np.longdouble)
         cs1 = np.zeros((T.ndim, nst, nst), dtype=np.longdouble)
@@ -423,7 +490,6 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
             cs1[:, :, i] = cs1[:, :, i] * ovi
             cs1[:, i, :] = cs1[:, i, :] * ovi
 
-            print('ovs:', ovi)
         derivs = np.zeros((T.ndim, nst, nst))
         for n1 in range(T.nstates):
             for n2 in range(T.nstates):
@@ -432,6 +498,7 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
                 else:
                     derivs[:, n1, n1] = fs1[:, n1]
         T.setderivs_traj(derivs)
+
         HE_1 = np.zeros_like(HE_0, dtype=np.clongdouble)
 
         for n1 in range(nst):
@@ -447,56 +514,308 @@ def velocityverlet_dima(T, finaltime,timestep,NN, calc1, phasewf):
         F1 = T.compforce(Ab, fsb, esb, csb) / np.longdouble(10.0)
 
         for n in range(1, 10):
-
-
             HE_b = (n * HE_1 + (10.0000 - n) * HE_0) * 0.1
-
 
             esb = (0.1 * n + np.longdouble(0.05)) * es1 + (np.longdouble(0.95) - n * 0.1) * es0
             fsb = (0.1 * n + np.longdouble(0.05)) * fs1 + (np.longdouble(0.95) - n * 0.1) * fs0
             csb = (0.1 * n + np.longdouble(0.05)) * cs1 + (np.longdouble(0.95) - n * 0.1) * cs0
-            A1 = np.matmul(magnus_2(-ii * HE_b, -ii * HE_b, timestep / np.longdouble(10.0000000)), Ab, dtype=np.clongdouble)
+            A1 = np.matmul(magnus_2(-ii * HE_b, -ii * HE_b, timestep / np.longdouble(10.0000000)), Ab,
+                           dtype=np.clongdouble)
 
             Ab = A1
             Fb = T.compforce(A1, fsb, esb, csb)
             F1 = F1 + Fb / np.longdouble(10.00)
-            # T.HE = HE_1
-        # if T.nstates > 1:
-        #         A1 = np.matmul(magnus_2(-ii * HE_b, -ii * HE_b, dt), Ab, dtype=np.clongdouble)
-        #     else:
-        #         A1 = magnus_2(-ii * HE_b, -ii * HE_b, dt) * Ab
-        #
-        #     Ab = A1
-        #
-        #
-        #     T.HE = HE_1
-        #     fb = T.compforce(A1, fsb, esb, csb)
-        #     F1 += fb / np.longdouble(float(nslice))
+
         A1 = np.matmul(magnus_2(-ii * HE_1, -ii * HE_1, timestep / 20.), Ab, dtype=np.clongdouble)
-
-
         T.setamplitudes_traj(A1)
         P1 = P0 + timestep * F1
         T.setmomentum_traj(P1)
         T.setoldpos_traj(R0)
         T.setoldmom_traj(P0)
-        f.write(str(time)+' '+str(abs(A1[0]) ** 2)+' '+str(abs(A1[1])**2)+'\n')
-        time=time+timestep
-        NN+=1
-        R0=R1
-        P0=P1
-        A0=A1
+        f.write(str(time) + ' ' + str(abs(A1[0]) ** 2) + ' ' + str(abs(A1[1]) ** 2) + '\n')
+        time = time + timestep
+
+        R0 = R1
+        P0 = P1
+        A0 = A1
 
         fs0 = fs1
         cs0 = cs1
         es0 = es1
 
         V0 = P1 / M
+
+        print(timestep)
+        print(T.phasedot())
+        T.setmomentum_traj(P0)
+        phase += timestep / 2.0 * (0.5 * np.sum(np.real(P0) ** 2 / M) - 0.5 * np.sum(widths / M))
+        print('phase:', phase)
+        ICycle = np.floor(phase / (2.0000 * np.pi))
+
+        phase = phase - 2.000 * np.pi * ICycle
+        T.setphase_traj(phase)
+        phasefile.write('phasedot vs p0: ' + str(T.phasedot()) + ' ' +
+                        str(T.getkineticlass() - 0.5 * np.sum(widths / M)) + '\n')
+        phasefile.write('ICycle: ' + str(ICycle) + '\n')
+        phasefile.write('phase2: ' + str(phase) + '\n')
+        T.setposition_traj(R1)
+        for n1 in range(T.nstates):
+            for n2 in range(T.nstates):
+                if n1 != n2:
+                    derivs[:, n1, n2] = cs1[:, n1, n2]
+                else:
+                    derivs[:, n1, n1] = fs1[:, n1]
+        T.setderivs_traj(derivs)
+        T.setamplitudes_traj(A1)
+        T.setHE_traj(HE_1)
+
+        # Trying clonning here, the value is taking from dima's code
+        if clonning:
+            Fa = 0.000
+            for i in range(nst):
+                Fa = Fa + fs1[:, i] * abs(A1[i]) ** 2
+            for i in range(nst):
+                Fc = np.sqrt(np.sum(((fs1[:, i] / M - Fa / M) * abs(A1[i]) ** 2) ** 2))
+
+                print('Fc for clonning is: ', Fc)
+                if Fc > 5.e-6 and np.all(abs(np.imag(HE_1[i, :])) < 2.e-3):
+                    if ncl <= maxcl:
+                        ncl += 1
+                        print('Clonning is happening \n')
+                        print('---------------------\n')
+                        print('----------------------\n')
+                        print(time, i)
+                        dirpath = 'Branch.' + str(ncl)
+
+                        if os.path.exists(dirpath) and os.path.isdir(dirpath):
+                            shutil.rmtree(dirpath)
+                        os.mkdir(dirpath)
+                        if np.abs(A1[i]) < 0.7071:
+                            Ac = np.zeros(2, dtype=np.complex128)
+                            Ac[i] = A1[i] / np.abs(A1[i])
+                            print(A1, i)
+                            A1[i] = complex(0., 0.)
+                            print('A0 sum is: ', np.sum(np.abs(A1) ** 2))
+                            if np.sum(np.abs(A1) ** 2) == 0.0:
+                                exit()
+                            A0 = A1 / np.sqrt(np.sum(np.abs(A1) ** 2))
+                        else:
+                            A0 = np.zeros(2, dtype=np.complex128)
+                            A0[i] = A1[i] / np.abs(A1[i])
+                            print(A1, i)
+                            A1[i] = complex(0., 0.)
+                            Ac = A1 / np.sqrt(np.sum(np.abs(A1) ** 2))
+                        break
+
+        FT.set_update_time(NN, time, T)
+
+        print(NN)
+        print('Amps from FT', abs(FT.get_amps_time(NN)) ** 2)
+
         F0 = T.compforce(A0, fs0, es0, cs0)
         HE_0 = HE_1
-
+        NN += 1
         print('final value of A:', abs(A1) ** 2)
-    return T
+
+        trajs_x.write(str(time) + '\n')
+        trajs_p.write(str(time) + '\n')
+        for i in range(natoms):
+            print(i * 3, (i + 1) * 3, np.real(R0[i * 3:(i + 1) * 3]))
+            trajs_x.write(str([i for i in np.real(R0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
+            trajs_x.write('\n')
+            trajs_p.write(str([i for i in np.real(P0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
+            trajs_p.write('\n')
+        trajs_amps.write(str(time) + '\n')
+        trajs_amps.write(str(A0).replace('[', '').replace(']', '') + '\n')
+        shutil.copy('molpro_traj_' + str(nstep) + '_0.inp', Folder_abinitio + '/')
+        shutil.copy('molpro_traj_' + str(nstep) + '_0.out', Folder_abinitio + '/')
+        shutil.copy('molpro_traj_' + str(nstep) + '_0.mld', Folder_abinitio + '/')
+        os.remove('molpro_traj_' + str(nstep) + '_0.inp')
+        os.remove('molpro_traj_' + str(nstep) + '_0.xml')
+        os.remove('molpro_traj_' + str(nstep) + '_0.out')
+        os.remove('molpro_traj_' + str(nstep) + '_0.mld')
+        nstep += 1
+        print(FT.get_full_time())
+        FT.set_mass(T.getmassall_traj())
+    if trains:
+        d = {}
+        bundle = []
+        bundle.append(FT)
+        for i in range(1, n_tr):
+            bundle.append(full_trajectory(finaltime - timestep * i, timestep, T.ndim, T.nstates))
+            bundle[i].set_mass(T.getmassall_traj())
+            bundle[i].set_potential_full(FT.get_potential_full()[:, i:])
+            bundle[i].set_full_time(FT.get_full_time()[:-i])
+            bundle[i].set_full_mom(FT.get_full_mom()[:, i:])
+            bundle[i].set_full_pos(FT.get_full_pos()[:, i:])
+            bundle[i].set_full_derivs(FT.get_full_derivs()[:, :, :, i:])
+            bundle[i].set_full_amps(FT.get_full_amps()[:, i:])
+            bundle[i].set_full_phases(FT.get_full_phase()[i:])
+            bundle[i].set_widths(width)
+
+    print('Trying the trains performance')
+    print(bundle[0].get_full_phase())
+    print(bundle[1].get_widths_time(0))
+    S = propagate_bundle(bundle)
+    print(S)
+    # print(bundle[1].get_derivs_time(1))
+
+    return FT, T, bundle
+
+
+def propagate_bundle(B):
+    ntraj = len(B)
+    nstates = 2
+    time_vec = B[ntraj - 1].get_full_time()
+    print(time_vec)
+    Heff = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    S = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    Sdx = np.zeros((ntraj, ntraj, B[0].get_ndim()), dtype=np.complex128)
+    Sd2x = np.zeros((ntraj, ntraj, B[0].get_ndim()), dtype=np.complex128)
+    Sdp = np.zeros((ntraj, ntraj, B[0].get_ndim()), dtype=np.complex128)
+    ek = np.zeros((ntraj, ntraj))
+    PhaseDot = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    H = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    T = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    V = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    V0 = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    V1 = np.zeros((nstates, ntraj, ntraj), dtype=np.complex128)
+    SE = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    Sdot = np.zeros((ntraj, ntraj), dtype=np.complex128)
+    Ampdot = np.zeros(ntraj)
+    Dtemp = np.zeros((ntraj), dtype=np.complex128)
+    D0 = np.zeros((nstates))
+    D1 = np.zeros((nstates))
+
+    Dtemp = 1.000 + 0.000j
+    print('Times to calculate', np.size(time_vec))
+    for i0 in range(ntraj):
+        for j0 in range(i0, ntraj):
+            T1 = B[i0]
+            T2 = B[j0]
+            print(T2.get_HE_time(0))
+            M = T2.get_mass()
+
+            print(T2.get_calc_HE_traj(0))
+            for t0 in range(np.size(time_vec)):
+                print(t0)
+                S[i0, j0], Sdx[i0,j0,:], Sd2x[i0,j0,:], Sdp[i0,j0,:]\
+                    = ov.overlap_trajs(T1, T2, t0)
+                S[j0, i0] = np.conj(S[i0, j0])
+                Sdx[j0, i0,:] = np.conj(Sdx[i0, j0,:])
+                Sd2x[j0, i0,:] = np.conj(Sd2x[i0, j0,:])
+                Sdp[j0, i0,:] = np.conj(Sdp[i0, j0,:])
+                # calc Sdx, Sd2x, Sdp
+
+
+                SE[i0, j0] = np.dot(T1.get_amps_time(t0), T2.get_amps_time(t0))
+
+                ek[i0,j0] = -0.5 * S[i0,j0] * np.sum(Sd2x[i0,j0,:] / M)
+                ek[j0,i0]= -0.5 * S[j0,i0] * np.sum(Sd2x[j0,i0,:] / M)
+
+                PhaseDot[i0,j0] = 0.5 * sum( T2.get_mom_time(t0)** 2 / M) - 0.5 * \
+                                  sum(T1.get_widths_time(t0) / M)
+                PhaseDot[j0, i0] = 0.5 * sum(T1.get_mom_time(t0) ** 2 / M) - 0.5 * \
+                                   sum(T1.get_widths_time(t0) / M)
+
+                Sdot[i0,j0] = (np.dot(T2.get_mom_time(t0) / M, Sdx[i0,j0,:]) + np.dot(T2.get_traj_force(t0), Sdp[i0,j0,:])) * S[i0,j0] + 1j \
+                              * PhaseDot[i0,j0] * S[i0,j0]
+
+                Sdot[j0, i0] = (np.dot(T1.get_mom_time(t0) / M, Sdx[j0, i0, :]) + np.dot(T1.get_traj_force(t0),
+                                Sdp[j0, i0, :])) * S[j0, i0] + 1j * PhaseDot[j0, i0] * S[j0, i0]
+
+                
+
+    return S
+
+
+# def buildsandh(B):
+#     overlap_tresh = 1e-8
+#     ntraj = len(B)
+#     nstates = np.size(B.get_amps_time(1))
+#     S = np.zeros((ntraj, ntraj), dtype=np.complex128)
+#     H = np.zeros((ntraj, ntraj), dtype=np.complex128)
+#     T = np.zeros((ntraj, ntraj), dtype=np.complex128)
+#     V = np.zeros((ntraj, ntraj), dtype=np.complex128)
+#     V0 = np.zeros((ntraj, ntraj), dtype=np.complex128)
+#     V1 = np.zeros((nstates, ntraj, ntraj), dtype=np.complex128)
+#     SE = np.zeros((ntraj, ntraj), dtype=np.complex128)
+#     Sdot = np.zeros((ntraj, ntraj), dtype=np.complex128)
+#     Ampdot = np.zeros(ntraj)
+#     D0 = np.zeros((nstates, nstates, ntraj, ntraj))
+#     D1 = np.zeros((nstates, nstates, ntraj, ntraj))
+#
+#     for i in range(ntraj):
+#         for j in range(i, ntraj):
+#             T1 = B[i]
+#             T2 = B[j]
+#
+#             S[i, j] = ov.overlap_trajs(T1, T2)
+#
+#             print('i,j: ', S[i, j], i, j)
+#             print('AMPSE: ', T1.stateAmpE)
+#             SE[i, j] = np.dot(T1.stateAmpE, T2.stateAmpE)
+#             if abs(S[i, j]) < overlap_tresh:
+#                 S[i, j] = 0.0
+#                 H[i, j] = 0.0
+#                 V1[:, i, j] = 0.0
+#                 V[i, j] = 0.0
+#                 T[i, j] = 0.0
+#                 D0[:, :, i, j] = 0.0
+#                 D1[:, :, i, j] = 0.0
+#
+#             else:
+#                 if i == j:
+#                     V0[i, j] = 0.
+#                     V1[:, i, j] = ov.overlap_v_traj(T1, T2)
+#                     V[i, j] = ov.overlap_v_traj(T1, T2)
+#                     T[i, j] = ov.overlap_ke_traj(T1, T2)
+#                     H[i, j] = T[i, j] + V[i, j]
+#                 else:
+#                     V1[:, i, j] = 0.0
+#                     V[i, j] = ov.overlap_v_traj(T1, T2)
+#                     V0[i, j] = ov.overlap_v_traj(T1, T2)
+#                     T[i, j] = ov.overlap_ke_traj(T1, T2)
+#
+#                     H[i, j] = T[i, j] + V[i, j]
+#
+#                     H[j, i] = np.conj(H[i, j])
+#                     T[j, i] = np.conj(T[i, j])
+#                     V[j, i] = np.conj(V[i, j])
+#                     V0[j, i] = V0[i, j]
+#                     V1[:, j, i] = V1[:, i, j]
+#                     S[j, i] = np.conj(S[i, j])
+#                     SE[j, i] = np.conj(SE[i, j])
+#
+#                     Sdot[i, j] = ov.overlap_sdot_traj(T1, T2)
+#                     Sdot[j, i] = ov.overlap_sdot_traj(T2, T1)
+#
+#     print('T in HS :', T)
+#     print('S in Hamilt :', S)
+#     print('SE in hamilt :', SE)
+#
+#     fullmat = S * SE
+#
+#     Sinv = inv.invertmat(fullmat)
+#
+#     print('Fullmat in hamilt: ', fullmat)
+#     print('Sinv in hamilt: ', Sinv)
+#
+#     tmpmat = H - 1j * Sdot
+#     Heff = np.matmul(Sinv, tmpmat)
+#
+#     Heff1 = H - 1j * Sdot
+#
+#     '''Set variables'''
+#     B.setH_bundle(H)
+#     B.setHeff1_bundle(Heff1)
+#     B.setHeff_bundle(Heff)
+#     B.setS_bundle(S)
+#     B.setSE_bundle(SE)
+#     B.setSinv_bundle(Sinv)
+#     B.setT_bundle(T)
+#     B.setV_bundle(V)
+#     return B
 
 
 def rk_method_4(T, dt, time, nstep):
