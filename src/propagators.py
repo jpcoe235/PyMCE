@@ -657,7 +657,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
     print(bundle[0].get_full_phase())
     print(bundle[1].get_widths_time(0))
     S = propagate_bundle(bundle)
-    print(S)
+    print(S) 
     # print(bundle[1].get_derivs_time(1))
 
     return FT, T, bundle
