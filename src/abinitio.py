@@ -16,14 +16,14 @@ a dynamics calculation'''
 
 class ab_par():
     def __init__(self):
-        self.molecule = 'Ethylene'  # Name of the molecule, it is not really used for anything
-        self.act_orb = 9  # Active orbitals
-        self.closed_orb = 7  # Closed orbitals
+        self.molecule = 'Pyrazyne'  # Name of the molecule, it is not really used for anything
+        self.act_orb = 21  # Active orbitals
+        self.closed_orb = 13  # Closed orbitals
         self.basis = 'avdz'  # Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
         self.civec = False  # prints CIs
         self.first = True  # First calculation creates the wf file
         self.molden = False  # create a molden
-        self.n_el = 16  # number of electrons to define the wf
+        self.n_el = 36  # number of electrons to define the wf
 
 
 def inp_out(i, substep, geo, T1):
@@ -34,10 +34,10 @@ def inp_out(i, substep, geo, T1):
     file2 = create_input(i, substep, q, geo)  # call to create_inp function
 
     T1.setfilecalc(file2)
-    os.system('molpro -d . -s molpro_traj_' + str(i) + '_' + str(
+    os.system('/usr/bin/molpro -d . -s molpro_traj_' + str(i) + '_' + str(
         substep) + '.inp')  # running molpro, change it for any run in a different computer
     time_counter = 0  #
-    time_to_wait = 100
+    time_to_wait = 10000000
     while not os.path.exists(
             'molpro.pun'):  # Dodgy way to wait for the punch file to be created, must be other way more elegant
         time.sleep(1)
@@ -114,7 +114,7 @@ def create_input(trajN, istep, q, geo):
         
         f.write(line_wr)
 
-        f.write('memory,100,m\n')
+        f.write('memory,1600,m\n')
 
         f.write('''gprint,orbitals,civector,angles=-1,distance=-1
  gthresh,twoint=1.0d-13
@@ -122,7 +122,85 @@ def create_input(trajN, istep, q, geo):
  gthresh,thrpun=0.001\n''')
 
         f.write('punch,molpro.pun,new\n')
-        f.write('basis=6-31g**\n')
+
+        if first:
+           f.write('''
+  SYMMETRY,NOSYM
+  GEOMTYPE=XYZ
+            ''')
+           f.write('geom={' + '\n')
+           f.write(str(geo.natoms) + '\n')
+           f.write('\n')
+
+           for i in range(geo.natoms):
+               line_wr = geo.atnames[i] + ' ' + str("{:.16E}".format(Decimal(r[0, i]))) + ' ' + \
+                         str("{:.16E}".format(Decimal(r[1, i]))) + ' ' + str("{:.16E}".format(Decimal(r[2, i]))) + '\n'
+               # print(file)
+               # print(line_wr)
+               f.write(line_wr)
+           f.write('}\n')
+
+           f.write('''
+            BASIS=sto-3g
+  {RHF
+  ORBITAL,2100.2
+  ORBPRINT,12
+  }
+
+  put,molden,in.molden
+
+  {MULTI
+  OCC,20
+  START,2100.2
+  ORBITAL,2070.2
+  CANONICAL,2070.2
+  CLOSED,14
+  ORBPRINT,19
+  WF,ELEC=36,SYM=1,SPIN=0
+  STATE,1
+  }
+
+  put,molden,sto3gorbs.molden
+
+  basis=aug-cc-pvdz
+
+  {MULTI
+  OCC,22
+  START,2070.2
+  ORBITAL,2071.2
+  CLOSED,12
+  ORBPRINT,19
+  WF,ELEC=36,SYM=1,SPIN=0
+  STATE,3
+  }
+
+  {MULTI
+  OCC,21
+  START,2071.2
+  ORBITAL,2072.2
+  CLOSED,13
+  ORBPRINT,19
+  WF,ELEC=36,SYM=1,SPIN=0
+  STATE,3
+  CPMCSCF,GRAD,1.1,RECORD=5101.1
+  CPMCSCF,GRAD,2.1,RECORD=5102.1
+  CPMCSCF,GRAD,3.1,RECORD=5103.1
+  CPMCSCF,NACM,1.1,2.1,SAVE=5104.1
+  CPMCSCF,NACM,1.1,3.1,SAVE=5105.1
+  CPMCSCF,NACM,2.1,3.1,SAVE=5106.1
+  }
+
+  force;samc,5101.1;
+  force;samc,5102.1; 
+  force;samc,5103.1;
+  force;samc,5104.1;
+  force;samc,5105.1;
+  force;samc,5106.1;
+''')
+           f.write('put,molden, ' + file2 + '\n')
+           f.write('''---''')
+        else:
+            f.write('basis=avdz\n')
         # f.write('basis={\n')
         # f.write('''                                                                               !
         #                                                                                 ! HYDROGEN       (4s,1p) -&gt; [2s,1p]
@@ -149,114 +227,114 @@ def create_input(trajN, istep, q, geo):
         #  c, 1.1,   1.0000000
         # }
         # ''')
-        f.write('''symmetry,nosym;
+            f.write('''symmetry,nosym;
 orient,noorient;
 angstrom;
 geomtype=xyz;
 ''')
-        if first:
-            f.write('geom=geom_0.in \n')
-        else:
-            f.write('geom={'+'\n')
-            f.write(str(geo.natoms) + '\n')
-            f.write('\n')
+            if 2>3:
+                f.write('geom=geom_0.in \n')
+            else:
+                f.write('geom={'+'\n')
+                f.write(str(geo.natoms) + '\n')
+                f.write('\n')
 
-            for i in range(geo.natoms):
-                line_wr = geo.atnames[i] + ' ' + str("{:.16E}".format(Decimal(r[0, i]))) + ' ' + \
-                          str("{:.16E}".format(Decimal(r[1, i]))) + ' ' + str("{:.16E}".format(Decimal(r[2, i]))) + '\n'
+                for i in range(geo.natoms):
+                    line_wr = geo.atnames[i] + ' ' + str("{:.16E}".format(Decimal(r[0, i]))) + ' ' + \
+                              str("{:.16E}".format(Decimal(r[1, i]))) + ' ' + str("{:.16E}".format(Decimal(r[2, i]))) + '\n'
             # print(file)
             # print(line_wr)
-                f.write(line_wr)
-            f.write('}\n')
-        f.write('''{multi,failsafe;
+                    f.write(line_wr)
+                f.write('}\n')
+            f.write('''{multi,failsafe;
 maxiter,40;
 
 ''')
-        line_wr = 'occ,' + str(ab.act_orb) + ';\n'
-        line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
-        line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
-        line_wr4 = 'state,' + str(3) + ';\n'
+            line_wr = 'occ,' + str(ab.act_orb) + ';\n'
+            line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
+            line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
+            line_wr4 = 'state,' + str(3) + ';\n'
 
-        f.write(line_wr)
-        f.write(line_wr2)
-        f.write(line_wr3)
-        f.write(line_wr4)
+            f.write(line_wr)
+            f.write(line_wr2)
+            f.write(line_wr3)
+            f.write(line_wr4)
 
-        f.write('''pspace,10.0        
+            f.write('''pspace,10.0        
 orbital,2140.3;
 ORBITAL,IGNORE_ERROR;
 ciguess,2501.2 
 save,ci=2501.2}
 ''')
-        f.write('''data,copy,2140.3,3000.2
+            f.write('''data,copy,2140.3,3000.2
 ''')
-        f.write('''{multi,failsafe;
+            f.write('''{multi,failsafe;
 maxiter,40;
 ''')
-        line_wr = 'occ,' + str(ab.act_orb) + ';\n'
-        line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
-        line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
-        line_wr4 = 'state,' + str(3) + ';\n'
+            line_wr = 'occ,' + str(ab.act_orb) + ';\n'
+            line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
+            line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
+            line_wr4 = 'state,' + str(3) + ';\n'
 
-        f.write(line_wr)
-        f.write(line_wr2)
-        f.write(line_wr3)
-        f.write(line_wr4)
+            f.write(line_wr)
+            f.write(line_wr2)
+            f.write(line_wr3)
+            f.write(line_wr4)
 
-        f.write('''pspace,10.0
+            f.write('''pspace,10.0
 orbital,2140.3;
 dm,2140.3
 save,ci=2501.2
 diab,3000.2,save=2140.3}
-        ''')
+            ''')
 
-        f.write('''{multi,failsafe;
+            f.write('''{multi,failsafe;
         maxiter,40;
-        ''')
-        line_wr = 'occ,' + str(ab.act_orb) + ';\n'
-        line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
-        line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
-        line_wr4 = 'state,' + str(3) + ';\n'
+            ''')
+            line_wr = 'occ,' + str(ab.act_orb) + ';\n'
+            line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
+            line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
+            line_wr4 = 'state,' + str(3) + ';\n'
 
-        f.write(line_wr)
-        f.write(line_wr2)
-        f.write(line_wr3)
-        f.write(line_wr4)
+            f.write(line_wr)
+            f.write(line_wr2)
+            f.write(line_wr3)
+            f.write(line_wr4)
 
-        f.write('''pspace,10.0
-        orbital,2140.3;
-        dm,2140.3
-        save,ci=2501.2
-        diab,3000.2,save=2140.3
-   
-                ''')
+            f.write('''pspace,10.0
+            orbital,2140.3;
+            dm,2140.3
+            save,ci=2501.2
+            diab,3000.2,save=2140.3
+        
+                    ''')
 
-        record = 5100.1
-        for i in range(dyn.nstates):
-            for j in range(i, dyn.nstates):
+            record = 5100.1
+            for i in range(dyn.nstates):
+                for j in range(i, dyn.nstates):
 
-                if i == j:
+                    if i == j:
 
-                    f.write('CPMCSCF,GRAD,' + str(i + 1) + '.1,record=' + str(record) + ';\n')
-                    record += 1
-                else:
-                    f.write('CPMCSCF,NACM,' + str(i + 1) + '.1,' + str(j + 1) + '.1,' + 'record=' + str(record) + ';\n')
-                    record += 1
-        f.write('}\n')
-        record = 5100.1
+                        f.write('CPMCSCF,GRAD,' + str(i + 1) + '.1,record=' + str(record) + ';\n')
+                        record += 1
+                    else:
+                        f.write('CPMCSCF,NACM,' + str(i + 1) + '.1,' + str(j + 1) + '.1,' + 'record=' + str(record) + ';\n')
+                        record += 1
+            f.write('}\n')
+            record = 5100.1
 
-        for i in range(dyn.nstates):
-            for j in range(i, dyn.nstates):
+            for i in range(dyn.nstates):
+                for j in range(i, dyn.nstates):
 
-                if i == j:
+                    if i == j:
 
-                    f.write('{FORCES;SAMC,' + str(record) + '};\n')
-                    record += 1
-                else:
-                    f.write('{FORCES;SAMC,' + str(record) + '};\n')
-                    record += 1
-        f.write('put,molden, ' + file2 + '\n')
-        f.write('''---''')
+                        f.write('{FORCES;SAMC,' + str(record) + '};\n')
+                        record += 1
+                    else:
+                        f.write('{FORCES;SAMC,' + str(record) + '};\n')
+                        record += 1
+            f.write('put,molden, ' + file2 + '\n')
+            f.write('''---''')
     return file2
 
 

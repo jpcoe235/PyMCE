@@ -6,7 +6,7 @@ import Constants
 import random
 
 
-def read_freq(file='freq.out', ndf=18, linear=False):
+def read_freq(file='vibs.molden', ndf=21, linear=False):
     if linear:
         nc = ndf - 5
         numcut = 5
@@ -66,7 +66,7 @@ def WignerSampling():
 
     geo = ig()
 
-    eigval, eigvec = read_freq('freq.out', geo.ndf, False)
+    eigval, eigvec = read_freq('vibs.molden', geo.ndf, False)
 
     '''Check that the Hessian is mass weighted '''
 

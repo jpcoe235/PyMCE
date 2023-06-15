@@ -353,8 +353,8 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
 
     phasefile = open('phase.dat', 'w')
 
-    clonning = True
-    trains = True
+    clonning = False
+    trains = False
     n_tr = 3
     maxcl = 10
     ncl = 0
@@ -367,6 +367,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
     FT.set_time_time(0, time)
 
     f = open("N_mine.dat", 'w', buffering=1)
+    g = open('energies.dat', 'w', buffering=1)
     ab2 = ab_par()
     geo = initgeom()
     geo2 = singlepart()
@@ -485,6 +486,9 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
             for j in range(nst):
                 cs1[:, i, j] = T.getcoupling_traj(i, j)
 
+        print('1,2',sum(abs(T.getcoupling_traj(0,1))))
+        print('1,3',sum(abs(T.getcoupling_traj(0, 2))))
+        print('2,3',sum(abs(T.getcoupling_traj(1, 2))))
         for i in range(1, T.nstates):
             ovi = np.sum(cs1[:, 0, i] * cs0[:, 0, i]) / abs(np.sum(cs1[:, 0, i] * cs0[:, 0, i]))
             cs1[:, :, i] = cs1[:, :, i] * ovi
@@ -532,7 +536,8 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
         T.setmomentum_traj(P1)
         T.setoldpos_traj(R0)
         T.setoldmom_traj(P0)
-        f.write(str(time) + ' ' + str(abs(A1[0]) ** 2) + ' ' + str(abs(A1[1]) ** 2) + '\n')
+        f.write(str(time) + ' ' + str(abs(A1[0]) ** 2) + ' ' + str(abs(A1[1]) ** 2) + ' '+ str(abs(A1[2])**2)+'\n')
+
         time = time + timestep
 
         R0 = R1
@@ -612,11 +617,14 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
         print(NN)
         print('Amps from FT', abs(FT.get_amps_time(NN)) ** 2)
 
+
         F0 = T.compforce(A0, fs0, es0, cs0)
         HE_0 = HE_1
         NN += 1
         print('final value of A:', abs(A1) ** 2)
-
+        energy2 = T.getpotential_traj() + T.getkineticlass()
+        print('energy at this step:: ', energy2)
+        g.write(str(energy2)+'\n')
         trajs_x.write(str(time) + '\n')
         trajs_p.write(str(time) + '\n')
         for i in range(natoms):
@@ -637,6 +645,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
         nstep += 1
         print(FT.get_full_time())
         FT.set_mass(T.getmassall_traj())
+
     if trains:
         d = {}
         bundle = []
@@ -656,10 +665,10 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
     print('Trying the trains performance')
     print(bundle[0].get_full_phase())
     print(bundle[1].get_widths_time(0))
-    S = propagate_bundle(bundle)
+    #S = propagate_bundle(bundle)
     print(S)
     # print(bundle[1].get_derivs_time(1))
-    print(S,bundle[0].get_full_phase())
+    print(S, bundle[0].get_full_phase())
     return FT, T, bundle
 
 
@@ -699,32 +708,32 @@ def propagate_bundle(B):
             print(T2.get_calc_HE_traj(0))
             for t0 in range(np.size(time_vec)):
                 print(t0)
-                S[i0, j0], Sdx[i0,j0,:], Sd2x[i0,j0,:], Sdp[i0,j0,:]\
+                S[i0, j0], Sdx[i0, j0, :], Sd2x[i0, j0, :], Sdp[i0, j0, :] \
                     = ov.overlap_trajs(T1, T2, t0)
                 S[j0, i0] = np.conj(S[i0, j0])
-                Sdx[j0, i0,:] = np.conj(Sdx[i0, j0,:])
-                Sd2x[j0, i0,:] = np.conj(Sd2x[i0, j0,:])
-                Sdp[j0, i0,:] = np.conj(Sdp[i0, j0,:])
+                Sdx[j0, i0, :] = np.conj(Sdx[i0, j0, :])
+                Sd2x[j0, i0, :] = np.conj(Sd2x[i0, j0, :])
+                Sdp[j0, i0, :] = np.conj(Sdp[i0, j0, :])
                 # calc Sdx, Sd2x, Sdp
-
 
                 SE[i0, j0] = np.dot(T1.get_amps_time(t0), T2.get_amps_time(t0))
 
-                ek[i0,j0] = -0.5 * S[i0,j0] * np.sum(Sd2x[i0,j0,:] / M)
-                ek[j0,i0]= -0.5 * S[j0,i0] * np.sum(Sd2x[j0,i0,:] / M)
+                ek[i0, j0] = -0.5 * S[i0, j0] * np.sum(Sd2x[i0, j0, :] / M)
+                ek[j0, i0] = -0.5 * S[j0, i0] * np.sum(Sd2x[j0, i0, :] / M)
 
-                PhaseDot[i0,j0] = 0.5 * sum( T2.get_mom_time(t0)** 2 / M) - 0.5 * \
-                                  sum(T1.get_widths_time(t0) / M)
+                PhaseDot[i0, j0] = 0.5 * sum(T2.get_mom_time(t0) ** 2 / M) - 0.5 * \
+                                   sum(T1.get_widths_time(t0) / M)
                 PhaseDot[j0, i0] = 0.5 * sum(T1.get_mom_time(t0) ** 2 / M) - 0.5 * \
                                    sum(T1.get_widths_time(t0) / M)
 
-                Sdot[i0,j0] = (np.dot(T2.get_mom_time(t0) / M, Sdx[i0,j0,:]) + np.dot(T2.get_traj_force(t0), Sdp[i0,j0,:])) * S[i0,j0] + 1j \
-                              * PhaseDot[i0,j0] * S[i0,j0]
+                Sdot[i0, j0] = (np.dot(T2.get_mom_time(t0) / M, Sdx[i0, j0, :]) + np.dot(T2.get_traj_force(t0),
+                                                                                         Sdp[i0, j0, :])) * S[
+                                   i0, j0] + 1j \
+                               * PhaseDot[i0, j0] * S[i0, j0]
 
                 Sdot[j0, i0] = (np.dot(T1.get_mom_time(t0) / M, Sdx[j0, i0, :]) + np.dot(T1.get_traj_force(t0),
-                                Sdp[j0, i0, :])) * S[j0, i0] + 1j * PhaseDot[j0, i0] * S[j0, i0]
-
-                
+                                                                                         Sdp[j0, i0, :])) * S[
+                                   j0, i0] + 1j * PhaseDot[j0, i0] * S[j0, i0]
 
     return S
 
