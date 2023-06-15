@@ -464,6 +464,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
 
         T_try = copy(T)
         T.setposition_traj(R1)
+        NNdist=(R1[0:3]-R1[4:7])**2
         T.setmomentum_traj(P1)
 
         pes, der, cis, configs = ab.inp_out(NN, 0, geo, T)

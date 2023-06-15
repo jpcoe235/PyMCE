@@ -108,7 +108,8 @@ def create_input(trajN, istep, q, geo):
         line_wr_2 = 'file,2,' + str(trajN) + '.check.wfu,new\n'
         # f.write(line_wr_2)
         if first:
-            line_wr = 'file,3,004.molpro.wfu,new\n'
+            os.system('cp /home/andres/wfu/wavefunction.wfu /home/andres/wfu/004.molpro.wfu')
+            line_wr = 'file,3,004.molpro.wfu\n'
         else:
             line_wr = 'file,3,004.molpro.wfu\n'
         
@@ -141,42 +142,15 @@ def create_input(trajN, istep, q, geo):
            f.write('}\n')
 
            f.write('''
-            BASIS=sto-3g
-  {RHF
-  ORBITAL,2100.2
-  ORBPRINT,12
-  }
+            
 
-  put,molden,in.molden
-
-  {MULTI
-  OCC,20
-  START,2100.2
-  ORBITAL,2070.2
-  CANONICAL,2070.2
-  CLOSED,14
-  ORBPRINT,19
-  WF,ELEC=36,SYM=1,SPIN=0
-  STATE,1
-  }
-
-  put,molden,sto3gorbs.molden
 
   basis=aug-cc-pvdz
 
-  {MULTI
-  OCC,22
-  START,2070.2
-  ORBITAL,2071.2
-  CLOSED,12
-  ORBPRINT,19
-  WF,ELEC=36,SYM=1,SPIN=0
-  STATE,3
-  }
 
   {MULTI
   OCC,21
-  START,2071.2
+  START,2072.2
   ORBITAL,2072.2
   CLOSED,13
   ORBPRINT,19

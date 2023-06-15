@@ -13,7 +13,7 @@ class initdyn():
         self._nstates = 3
         self._state = range(0, self._nstates)  # array of states
         self._inipes = 2  # Initial state
-        self._e_ref = np.double(-77.67785291) #Reference energy for the ground state
+        self._e_ref = np.double(-224.8) #Reference energy for the ground state
 
 
     @property

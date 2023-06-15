@@ -60,6 +60,7 @@ if sharc:
     index1 = False
     index2 = False
     atomc = 1
+    os.system('python src/wigner.py -n 1 vibs.molden')
     with open('initconds', 'r') as f:
         lines = f.readlines()
         for line in lines:
