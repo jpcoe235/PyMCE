@@ -338,20 +338,30 @@ def velocityverlet(T, timestep, NN, calc1, phasewf):
     return T
 
 
-def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
-    File_trajs_x = 'Trajectory_x_1.dat'
-    File_trajs_p = 'Trajectory_p_1.dat'
-    File_amps = 'Trajectory_amp_1.dat'
-    Folder_abinitio = 'Trajectory_EE'
+def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
+    Folder_traj = 'Traj_' + str(trajnum)
+    syscomm = 'rm -r ' + Folder_traj
+    os.system('rm -r ')
+    if os.path.exists(Folder_traj) and os.path.isdir(Folder_traj):
+        shutil.rmtree(Folder_traj)
+    os.mkdir(Folder_traj)
+    File_trajs_x = Folder_traj + '/Trajectory_x_1.dat'
+    File_trajs_p = Folder_traj + '/Trajectory_p_1.dat'
+    File_amps = Folder_traj + '/Trajectory_amp_1.dat'
+    File_energies = Folder_traj + '/Trajectory_energy.dat'
+    Folder_abinitio = Folder_traj + '/Trajectory_EE'
+
     if os.path.exists(Folder_abinitio) and os.path.isdir(Folder_abinitio):
         shutil.rmtree(Folder_abinitio)
+
     os.mkdir(Folder_abinitio)
 
     trajs_x = open(File_trajs_x, 'w')
     trajs_p = open(File_trajs_p, 'w')
     trajs_amps = open(File_amps, 'w')
+    traj_ens = open(File_amps, 'w')
 
-    phasefile = open('phase.dat', 'w')
+    phasefile = open(Folder_traj + '/phase.dat', 'w')
 
     clonning = False
     trains = False
@@ -366,8 +376,8 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
     time = 0.00000
     FT.set_time_time(0, time)
 
-    f = open("N_mine.dat", 'w', buffering=1)
-    g = open('energies.dat', 'w', buffering=1)
+    f = open(Folder_traj + '/pops.dat', 'w', buffering=1)
+    g = open(Folder_traj + '/normenergies.dat', 'w', buffering=1)
     ab2 = ab_par()
     geo = initgeom()
     geo2 = singlepart()
@@ -409,13 +419,15 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
     es0 = np.zeros(nst, dtype=np.longdouble)
     fs0 = np.zeros((T.ndim, nst), dtype=np.longdouble)
     cs0 = np.zeros((T.ndim, nst, nst), dtype=np.longdouble)
+    traj_ens.write('Step 0\n')
 
     for i in range(nst):
         es0[i] = T.getpotential_traj_i(i)
+
         fs0[:, i] = T.getforce_traj(i)
         for j in range(nst):
             cs0[:, i, j] = T.getcoupling_traj(i, j)
-
+    traj_ens.write(str(es0)+' '+str(sum(abs(A0)**2*es0))+'\n')
     derivs = np.zeros((T.ndim, nst, nst))
     for n1 in range(T.nstates):
         for n2 in range(T.nstates):
@@ -464,7 +476,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
 
         T_try = copy(T)
         T.setposition_traj(R1)
-        NNdist=(R1[0:3]-R1[4:7])**2
+        NNdist = (R1[0:3] - R1[4:7]) ** 2
         T.setmomentum_traj(P1)
 
         pes, der, cis, configs = ab.inp_out(NN, 0, geo, T)
@@ -487,9 +499,9 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
             for j in range(nst):
                 cs1[:, i, j] = T.getcoupling_traj(i, j)
 
-        print('1,2',sum(abs(T.getcoupling_traj(0,1))))
-        print('1,3',sum(abs(T.getcoupling_traj(0, 2))))
-        print('2,3',sum(abs(T.getcoupling_traj(1, 2))))
+        print('1,2', sum(abs(T.getcoupling_traj(0, 1))))
+        print('1,3', sum(abs(T.getcoupling_traj(0, 2))))
+        print('2,3', sum(abs(T.getcoupling_traj(1, 2))))
         for i in range(1, T.nstates):
             ovi = np.sum(cs1[:, 0, i] * cs0[:, 0, i]) / abs(np.sum(cs1[:, 0, i] * cs0[:, 0, i]))
             cs1[:, :, i] = cs1[:, :, i] * ovi
@@ -537,7 +549,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
         T.setmomentum_traj(P1)
         T.setoldpos_traj(R0)
         T.setoldmom_traj(P0)
-        f.write(str(time) + ' ' + str(abs(A1[0]) ** 2) + ' ' + str(abs(A1[1]) ** 2) + ' '+ str(abs(A1[2])**2)+'\n')
+        f.write(str(time) + ' ' + str(abs(A1[0]) ** 2) + ' ' + str(abs(A1[1]) ** 2) + ' ' + str(abs(A1[2]) ** 2) + '\n')
 
         time = time + timestep
 
@@ -618,16 +630,17 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
         print(NN)
         print('Amps from FT', abs(FT.get_amps_time(NN)) ** 2)
 
-
         F0 = T.compforce(A0, fs0, es0, cs0)
         HE_0 = HE_1
         NN += 1
         print('final value of A:', abs(A1) ** 2)
         energy2 = T.getpotential_traj() + T.getkineticlass()
         print('energy at this step:: ', energy2)
-        g.write(str(energy2)+'\n')
+        g.write(str(energy2) + '\n')
         trajs_x.write(str(time) + '\n')
         trajs_p.write(str(time) + '\n')
+        traj_ens.write(str(time)+'\n')
+        traj_ens.write(str(es0) + ' ' + str(sum(abs(A0) ** 2 * es0)) + '\n')
         for i in range(natoms):
             print(i * 3, (i + 1) * 3, np.real(R0[i * 3:(i + 1) * 3]))
             trajs_x.write(str([i for i in np.real(R0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
@@ -663,13 +676,14 @@ def velocityverlet_dima(T, finaltime, timestep, NN, calc1, phasewf):
             bundle[i].set_full_phases(FT.get_full_phase()[i:])
             bundle[i].set_widths(width)
 
-    print('Trying the trains performance')
-    print(bundle[0].get_full_phase())
-    print(bundle[1].get_widths_time(0))
-    #S = propagate_bundle(bundle)
-    print(S)
-    # print(bundle[1].get_derivs_time(1))
-    print(S, bundle[0].get_full_phase())
+    # print('Trying the trains performance')
+    # print(bundle[0].get_full_phase())
+    # print(bundle[1].get_widths_time(0))
+    # # S = propagate_bundle(bundle)
+    # print(S)
+    # # print(bundle[1].get_derivs_time(1))
+    # print(S, bundle[0].get_full_phase())
+    bundle=0
     return FT, T, bundle
 
 

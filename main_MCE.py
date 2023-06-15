@@ -54,6 +54,7 @@ q = np.zeros(geo.ndf, dtype=np.longdouble)
 p = np.zeros_like(q, dtype=np.longdouble)
 
 sharc = True
+numtraj=1
 count = 0
 
 if sharc:
@@ -167,50 +168,50 @@ for i in range(1):
     f.write(str(t) + ' ' + str(np.abs(T1.stateAmpE[0]) ** 2) + ' ' + str(np.abs(T1.stateAmpE[1]) ** 2) + '\n')
     f2.write(str(t) + ' ' + str(T1.getcoupling_traj(0, 1)[0]) + '\n')
 
-    amps[i, 0] = np.abs(T1.stateAmpE[0]) ** 2
-    amps[i, 1] = np.abs(T1.stateAmpE[1]) ** 2
+    # amps[i, 0] = np.abs(T1.stateAmpE[0]) ** 2
+    # amps[i, 1] = np.abs(T1.stateAmpE[1]) ** 2
     Told = copy(T1)
-    if Told.getcoupling_traj(0, 1)[0] > 0:
-        phasewf = 1
-    else:
-        phasewf = -1
+    # if Told.getcoupling_traj(0, 1)[0] > 0:
+    #     phasewf = 1
+    # else:
+    #     phasewf = -1
     phasewf = 1
     # os.system('cp /home/AndresMoreno/wfu/003.molpro.wfu /home/AndresMoreno/wfu/002.molpro.wfu')
     # os.system('cp 003.molpro.wfu 002.molpro.wfu')
-    FT, T2, Bundle = velocityverlet_dima(Told, 600, dt, i + 1, calc1, phasewf)
+    FT, T2, Bundle = velocityverlet_dima(Told, 600, dt, i + 1,numtraj, calc1, phasewf)
 
     print(FT.get_amps())
-    exit
-    for ns in range(T2.nstates):
-        ovs_ci = np.dot(T2.getcivecs()[:, ns], T1.getcivecs()[:, ns])
-        if ovs_ci < 0.0:
-            ccoo = 'red'
-        else:
-            ccoo = colorvec[ns]
-    #   ax3.scatter(t*ph.au2sec/1e-15, abs(ovs_ci),c=ccoo)
-    ov_11, ov_22 = ovwf(T1, T2)
-    if ov_11 < 0.0:
-        ccoo = 'red'
-    else:
-        ccoo = colorvec[2]
-    # ax3.scatter(t * ph.au2sec / 1e-15, abs(ov_11), c=ccoo)
-    if ov_22 < 0.0:
-        ccoo = 'red'
-    else:
-        ccoo = colorvec[3]
-    # ax3.scatter(t * ph.au2sec / 1e-15, abs(ov_22), c=ccoo)
-    # plt.pause(0.01)
-    energy2 = T2.getpotential_traj() + T2.getkineticlass()
-    f3.write(str(t) + ' ' + str(energy2) + '\n')
-    print('coupling', T2.getcoupling_traj(0, 1)[0])
-
-    T1 = copy(T2)
-
-    t = t + dt
+    #exit
+    # for ns in range(T2.nstates):
+    #     ovs_ci = np.dot(T2.getcivecs()[:, ns], T1.getcivecs()[:, ns])
+    #     if ovs_ci < 0.0:
+    #         ccoo = 'red'
+    #     else:
+    #         ccoo = colorvec[ns]
+    # #   ax3.scatter(t*ph.au2sec/1e-15, abs(ovs_ci),c=ccoo)
+    # ov_11, ov_22 = ovwf(T1, T2)
+    # if ov_11 < 0.0:
+    #     ccoo = 'red'
+    # else:
+    #     ccoo = colorvec[2]
+    # # ax3.scatter(t * ph.au2sec / 1e-15, abs(ov_11), c=ccoo)
+    # if ov_22 < 0.0:
+    #     ccoo = 'red'
+    # else:
+    #     ccoo = colorvec[3]
+    # # ax3.scatter(t * ph.au2sec / 1e-15, abs(ov_22), c=ccoo)
+    # # plt.pause(0.01)
+    # energy2 = T2.getpotential_traj() + T2.getkineticlass()
+    # f3.write(str(t) + ' ' + str(energy2) + '\n')
+    # print('coupling', T2.getcoupling_traj(0, 1)[0])
+    #
+    # T1 = copy(T2)
+    #
+    # t = t + dt
 # wrtout(False, T1, t)
 f.close()
 f2.close()
 f3.close()
 # fig1.savefig('energydif.png')
-fig2.savefig('amplitudes.png')
+#fig2.savefig('amplitudes.png')
 # fig3.savefig('overlaps.png')
