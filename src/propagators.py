@@ -349,6 +349,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
     File_trajs_p = Folder_traj + '/Trajectory_p_1.dat'
     File_amps = Folder_traj + '/Trajectory_amp_1.dat'
     File_energies = Folder_traj + '/Trajectory_energy.dat'
+    File_NN = Folder_traj + '/Trajectory_NNdist.dat'
     Folder_abinitio = Folder_traj + '/Trajectory_EE'
 
     if os.path.exists(Folder_abinitio) and os.path.isdir(Folder_abinitio):
@@ -359,7 +360,9 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
     trajs_x = open(File_trajs_x, 'w')
     trajs_p = open(File_trajs_p, 'w')
     trajs_amps = open(File_amps, 'w')
-    traj_ens = open(File_amps, 'w')
+    traj_ens = open(File_energies, 'w')
+    traj_dist= open(File_NN, 'w')
+
 
     phasefile = open(Folder_traj + '/phase.dat', 'w')
 
@@ -405,6 +408,9 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
         trajs_p.write(str([i for i in np.real(P0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
         trajs_p.write('\n')
     trajs_amps.write('0.0000\n')
+    traj_dist.write('0.000'+'\n')
+    NNdist = np.sqrt(sum((R0[0:3] - R0[4:7]) ** 2))
+    traj_dist.write(str(NNdist)+'\n')
     trajs_amps.write(str(A0) + '\n')
     FT.set_pos_time(0, R0)
     FT.set_mom_time(0, P0)
@@ -476,7 +482,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
 
         T_try = copy(T)
         T.setposition_traj(R1)
-        NNdist = (R1[0:3] - R1[4:7]) ** 2
+        NNdist = np.sqrt((R1[0:3] - R1[4:7]) ** 2)
         T.setmomentum_traj(P1)
 
         pes, der, cis, configs = ab.inp_out(NN, 0, geo, T)
@@ -638,9 +644,10 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
         print('energy at this step:: ', energy2)
         g.write(str(energy2) + '\n')
         trajs_x.write(str(time) + '\n')
+        traj_dist.write(str(time) + '\n')
         trajs_p.write(str(time) + '\n')
         traj_ens.write(str(time)+'\n')
-        traj_ens.write(str(es0) + ' ' + str(sum(abs(A0) ** 2 * es0)) + '\n')
+        traj_ens.write(str(np.real(es0)) + ' ' + str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
         for i in range(natoms):
             print(i * 3, (i + 1) * 3, np.real(R0[i * 3:(i + 1) * 3]))
             trajs_x.write(str([i for i in np.real(R0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
@@ -649,6 +656,8 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
             trajs_p.write('\n')
         trajs_amps.write(str(time) + '\n')
         trajs_amps.write(str(A0).replace('[', '').replace(']', '') + '\n')
+        NNdist = np.real(np.sqrt(sum((R0[0:3] - R0[3:6]) ** 2)))*0.529177
+        traj_dist.write(str(NNdist)+'\n')
         shutil.copy('molpro_traj_' + str(nstep) + '_0.inp', Folder_abinitio + '/')
         shutil.copy('molpro_traj_' + str(nstep) + '_0.out', Folder_abinitio + '/')
         shutil.copy('molpro_traj_' + str(nstep) + '_0.mld', Folder_abinitio + '/')
