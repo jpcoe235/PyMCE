@@ -425,7 +425,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
     es0 = np.zeros(nst, dtype=np.longdouble)
     fs0 = np.zeros((T.ndim, nst), dtype=np.longdouble)
     cs0 = np.zeros((T.ndim, nst, nst), dtype=np.longdouble)
-    traj_ens.write('Step 0\n')
+
 
     for i in range(nst):
         es0[i] = T.getpotential_traj_i(i)
@@ -433,7 +433,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
         fs0[:, i] = T.getforce_traj(i)
         for j in range(nst):
             cs0[:, i, j] = T.getcoupling_traj(i, j)
-    traj_ens.write(str(es0)+' '+str(sum(abs(A0)**2*es0))+'\n')
+    traj_ens.write(str(0.000) + ' ' + str(np.real(es0[0])) + ' ' + str(np.real(es0[1])) + ' ' + str(np.real(es0[2])) + ' ' + str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
     derivs = np.zeros((T.ndim, nst, nst))
     for n1 in range(T.nstates):
         for n2 in range(T.nstates):
@@ -646,7 +646,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
         trajs_x.write(str(time) + '\n')
         traj_dist.write(str(time) + '\n')
         trajs_p.write(str(time) + '\n')
-        traj_ens.write(str(time)+'\n')
+        traj_ens.write(str(time)+' '+str(np.real(es0[0])) + ' ' +str(np.real(es0[1]))+' '+ str(np.real(es0[2]))+ ' '+ str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
         traj_ens.write(str(np.real(es0)) + ' ' + str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
         for i in range(natoms):
             print(i * 3, (i + 1) * 3, np.real(R0[i * 3:(i + 1) * 3]))

@@ -54,7 +54,7 @@ q = np.zeros(geo.ndf, dtype=np.longdouble)
 p = np.zeros_like(q, dtype=np.longdouble)
 
 sharc = True
-numtraj=1
+numtraj=2
 count = 0
 
 if sharc:
