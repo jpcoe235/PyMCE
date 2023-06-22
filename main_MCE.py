@@ -54,7 +54,7 @@ q = np.zeros(geo.ndf, dtype=np.longdouble)
 p = np.zeros_like(q, dtype=np.longdouble)
 
 sharc = True
-numtraj=2
+numtraj=3
 count = 0
 
 if sharc:
@@ -178,9 +178,9 @@ for i in range(1):
     phasewf = 1
     # os.system('cp /home/AndresMoreno/wfu/003.molpro.wfu /home/AndresMoreno/wfu/002.molpro.wfu')
     # os.system('cp 003.molpro.wfu 002.molpro.wfu')
-    FT, T2, Bundle = velocityverlet_dima(Told, 600, dt, i + 1,numtraj, calc1, phasewf)
+    FT, T2, Bundle = velocityverlet_dima(Told, 600, dt, i + 1,numtraj, calc1, phasewf,0.0000)
 
-    print(FT.get_amps())
+
     #exit
     # for ns in range(T2.nstates):
     #     ovs_ci = np.dot(T2.getcivecs()[:, ns], T1.getcivecs()[:, ns])

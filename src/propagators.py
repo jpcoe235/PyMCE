@@ -338,7 +338,7 @@ def velocityverlet(T, timestep, NN, calc1, phasewf):
     return T
 
 
-def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
+def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf,time):
     Folder_traj = 'Traj_' + str(trajnum)
     syscomm = 'rm -r ' + Folder_traj
     os.system('rm -r ')
@@ -373,10 +373,10 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
     ncl = 0
     ph = physconst()
     finaltime = finaltime / (ph.au2sec / 1E-15)
-    print('finaltime=', finaltime)
+    print('finaltime=', finaltime, time,timestep)
     np.set_printoptions(precision=32)
     FT = full_trajectory(finaltime, timestep, T.ndim, T.nstates)
-    time = 0.00000
+
     FT.set_time_time(0, time)
 
     f = open(Folder_traj + '/pops.dat', 'w', buffering=1)
@@ -449,7 +449,9 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
     # F0 = T.compforce(A0, fs0, es0, cs0) / np.longdouble(10.000)
     nstep = 0
     while time <= finaltime:
-
+        Told=T
+        FTold=FT
+        energy1 = T.getpotential_traj() + T.getkineticlass()
         nslice = magnus_slice
 
         Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(20.0000)), A0, dtype=np.clongdouble)
@@ -468,11 +470,10 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
             F0 += T.compforce(A1, fs0, es0, cs0) / np.longdouble(10.000)
 
         T.setamplitudes_traj(A0)
-        print(0.5 * np.sum(widths / M))
-        print(0.5 * np.sum(np.real(P0) ** 2 / M))
+
         phase += timestep / 2.0 * (0.5 * np.sum(np.real(P0) ** 2 / M) - 0.5 * np.sum(widths / M))
         phasefile.write('phase2: ' + str(phase) + '\n')
-        print('phase:', phase)
+
         R1 = R0 + timestep * V0 + timestep ** 2.0 / 2.00 * F0 / M
         P1 = P0 + timestep * F0
         V1 = P1 / M
@@ -568,12 +569,9 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
         es0 = es1
 
         V0 = P1 / M
-
-        print(timestep)
-        print(T.phasedot())
         T.setmomentum_traj(P0)
         phase += timestep / 2.0 * (0.5 * np.sum(np.real(P0) ** 2 / M) - 0.5 * np.sum(widths / M))
-        print('phase:', phase)
+
         ICycle = np.floor(phase / (2.0000 * np.pi))
 
         phase = phase - 2.000 * np.pi * ICycle
@@ -617,39 +615,53 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
                         if np.abs(A1[i]) < 0.7071:
                             Ac = np.zeros(2, dtype=np.complex128)
                             Ac[i] = A1[i] / np.abs(A1[i])
-                            print(A1, i)
+
                             A1[i] = complex(0., 0.)
-                            print('A0 sum is: ', np.sum(np.abs(A1) ** 2))
+
                             if np.sum(np.abs(A1) ** 2) == 0.0:
                                 exit()
                             A0 = A1 / np.sqrt(np.sum(np.abs(A1) ** 2))
                         else:
                             A0 = np.zeros(2, dtype=np.complex128)
                             A0[i] = A1[i] / np.abs(A1[i])
-                            print(A1, i)
+
                             A1[i] = complex(0., 0.)
                             Ac = A1 / np.sqrt(np.sum(np.abs(A1) ** 2))
                         break
 
         FT.set_update_time(NN, time, T)
 
-        print(NN)
-        print('Amps from FT', abs(FT.get_amps_time(NN)) ** 2)
+
 
         F0 = T.compforce(A0, fs0, es0, cs0)
         HE_0 = HE_1
         NN += 1
         print('final value of A:', abs(A1) ** 2)
         energy2 = T.getpotential_traj() + T.getkineticlass()
+        print('Energy difference with previous step:',  abs(energy1-energy2))
+        if (abs(energy1-energy2)>5e-5):
+            print('adaptive timestep')
+            print('-------------------------')
+            print('-------------------------')
+            print('-------------------------')
+            print('current time: ',time )
+            print('time step is reduced from ', timestep, ' to ', timestep/5.00)
+            FT2, T, Bundle = velocityverlet_adaptive(Told, time, timestep/5.00, NN, trajnum, calc1, phasewf,time-timestep,nstep)
+            NN+=5
+            print('-------------------------')
+            print('-------------------------')
+            print('-------------------------')
+            print('Back in the original call')
+
         print('energy at this step:: ', energy2)
         g.write(str(energy2) + '\n')
         trajs_x.write(str(time) + '\n')
         traj_dist.write(str(time) + '\n')
         trajs_p.write(str(time) + '\n')
         traj_ens.write(str(time)+' '+str(np.real(es0[0])) + ' ' +str(np.real(es0[1]))+' '+ str(np.real(es0[2]))+ ' '+ str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
-        traj_ens.write(str(np.real(es0)) + ' ' + str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
+
         for i in range(natoms):
-            print(i * 3, (i + 1) * 3, np.real(R0[i * 3:(i + 1) * 3]))
+
             trajs_x.write(str([i for i in np.real(R0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
             trajs_x.write('\n')
             trajs_p.write(str([i for i in np.real(P0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
@@ -666,7 +678,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
         os.remove('molpro_traj_' + str(nstep) + '_0.out')
         os.remove('molpro_traj_' + str(nstep) + '_0.mld')
         nstep += 1
-        print(FT.get_full_time())
+
         FT.set_mass(T.getmassall_traj())
 
     if trains:
@@ -695,6 +707,275 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf):
     bundle=0
     return FT, T, bundle
 
+def velocityverlet_adaptive(T, finaltime, timestep, NN, trajnum, calc1, phasewf,time,nstep):
+    clonning = False
+    trains = False
+    n_tr = 3
+    maxcl = 10
+    ncl = 0
+    ph = physconst()
+   # finaltime = finaltime / (ph.au2sec / 1E-15)
+    print('finaltime=', finaltime, time,timestep)
+    np.set_printoptions(precision=32)
+
+
+
+
+
+    ab2 = ab_par()
+    geo = initgeom()
+    geo2 = singlepart()
+    ii = np.clongdouble(0.00 + 1.00000000000j)
+    magnus_slice = 10
+    nst = T.nstates
+    widths = np.zeros(T.ndim)
+    widths[:] = 4.7
+    widths[0:6] = 22.7
+    M = T.getmassall_traj()
+    R0 = T.getposition_traj()
+    P0 = T.getmomentum_traj()
+    V0 = T.getvelocity_traj()
+    A0 = T.getamplitude_traj()
+    HE_0 = np.zeros((nst, nst), dtype=np.clongdouble)
+    phase = np.real(T.getphase_traj())
+    width = T.getwidth_traj()
+    print('phase:', phase)
+
+    for n1 in range(nst):
+        HE_0[n1, n1] = T.getpotential_traj_i(n1)
+        for n2 in range(n1 + 1, nst):
+            HE_0[n1, n2] = np.clongdouble(-ii * np.sum(V0 * T.getcoupling_traj(n1, n2)))
+            HE_0[n2, n1] = -HE_0[n1, n2]
+
+    es0 = np.zeros(nst, dtype=np.longdouble)
+    fs0 = np.zeros((T.ndim, nst), dtype=np.longdouble)
+    cs0 = np.zeros((T.ndim, nst, nst), dtype=np.longdouble)
+
+
+    for i in range(nst):
+        es0[i] = T.getpotential_traj_i(i)
+
+        fs0[:, i] = T.getforce_traj(i)
+        for j in range(nst):
+            cs0[:, i, j] = T.getcoupling_traj(i, j)
+
+    derivs = np.zeros((T.ndim, nst, nst))
+    for n1 in range(T.nstates):
+        for n2 in range(T.nstates):
+            if n1 != n2:
+                derivs[:, n1, n2] = cs0[:, n1, n2]
+            else:
+                derivs[:, n1, n1] = fs0[:, n1]
+
+
+
+
+    # F0 = T.compforce(A0, fs0, es0, cs0) / np.longdouble(10.000)
+
+    while time <= finaltime:
+
+        energy1 = T.getpotential_traj() + T.getkineticlass()
+        nslice = magnus_slice
+
+        Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(20.0000)), A0, dtype=np.clongdouble)
+
+        F0 = T.compforce(A0, fs0, es0, cs0) / 10.0000000
+        for i in range(1, 10):
+
+            dt = timestep / np.longdouble(nslice)
+            if T.nstates > 1:
+                A1 = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(10.0000)), Ab,
+                               dtype=np.clongdouble)
+            else:
+                A1 = magnus_2(-ii * HE_0, -ii * HE_0, dt) * Ab
+
+            Ab = A1
+            F0 += T.compforce(A1, fs0, es0, cs0) / np.longdouble(10.000)
+
+        T.setamplitudes_traj(A0)
+
+        phase += timestep / 2.0 * (0.5 * np.sum(np.real(P0) ** 2 / M) - 0.5 * np.sum(widths / M))
+
+
+        R1 = R0 + timestep * V0 + timestep ** 2.0 / 2.00 * F0 / M
+        P1 = P0 + timestep * F0
+        V1 = P1 / M
+
+        T.setoldpos_traj(R0)
+        T.setoldmom_traj(P0)
+
+        T_try = copy(T)
+        T.setposition_traj(R1)
+        NNdist = np.sqrt((R1[0:3] - R1[4:7]) ** 2)
+        T.setmomentum_traj(P1)
+
+        pes, der, cis, configs = ab.inp_out(NN, 0, geo, T)
+
+        T.setderivs_traj(der)
+        T.setpotential_traj(pes)
+
+
+
+        T.setcivecs(cis)
+        T.setconfigs(configs)
+
+        es1 = np.zeros(nst, dtype=np.longdouble)
+        fs1 = np.zeros((T.ndim, nst), dtype=np.longdouble)
+        cs1 = np.zeros((T.ndim, nst, nst), dtype=np.longdouble)
+
+        for i in range(nst):
+            es1[i] = T.getpotential_traj_i(i)
+            fs1[:, i] = T.getforce_traj(i)
+            for j in range(nst):
+                cs1[:, i, j] = T.getcoupling_traj(i, j)
+
+        print('1,2', sum(abs(T.getcoupling_traj(0, 1))))
+        print('1,3', sum(abs(T.getcoupling_traj(0, 2))))
+        print('2,3', sum(abs(T.getcoupling_traj(1, 2))))
+        for i in range(1, T.nstates):
+            ovi = np.sum(cs1[:, 0, i] * cs0[:, 0, i]) / abs(np.sum(cs1[:, 0, i] * cs0[:, 0, i]))
+            cs1[:, :, i] = cs1[:, :, i] * ovi
+            cs1[:, i, :] = cs1[:, i, :] * ovi
+
+        derivs = np.zeros((T.ndim, nst, nst))
+        for n1 in range(T.nstates):
+            for n2 in range(T.nstates):
+                if n1 != n2:
+                    derivs[:, n1, n2] = cs1[:, n1, n2]
+                else:
+                    derivs[:, n1, n1] = fs1[:, n1]
+        T.setderivs_traj(derivs)
+
+        HE_1 = np.zeros_like(HE_0, dtype=np.clongdouble)
+
+        for n1 in range(nst):
+            HE_1[n1, n1] = T.getpotential_traj_i(n1)
+            for n2 in range(n1 + 1, nst):
+                HE_1[n1, n2] = np.clongdouble(-ii * np.sum(V1 * cs1[:, n1, n2], dtype=np.longdouble))
+                HE_1[n2, n1] = -HE_1[n1, n2]
+
+        Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(20.0)), A0, dtype=np.clongdouble)
+        esb = np.longdouble(0.05) * es1 + np.longdouble(0.95) * es0
+        fsb = np.longdouble(0.05) * fs1 + np.longdouble(0.95) * fs0
+        csb = np.longdouble(0.05) * cs1 + np.longdouble(0.95) * cs0
+        F1 = T.compforce(Ab, fsb, esb, csb) / np.longdouble(10.0)
+
+        for n in range(1, 10):
+            HE_b = (n * HE_1 + (10.0000 - n) * HE_0) * 0.1
+
+            esb = (0.1 * n + np.longdouble(0.05)) * es1 + (np.longdouble(0.95) - n * 0.1) * es0
+            fsb = (0.1 * n + np.longdouble(0.05)) * fs1 + (np.longdouble(0.95) - n * 0.1) * fs0
+            csb = (0.1 * n + np.longdouble(0.05)) * cs1 + (np.longdouble(0.95) - n * 0.1) * cs0
+            A1 = np.matmul(magnus_2(-ii * HE_b, -ii * HE_b, timestep / np.longdouble(10.0000000)), Ab,
+                           dtype=np.clongdouble)
+
+            Ab = A1
+            Fb = T.compforce(A1, fsb, esb, csb)
+            F1 = F1 + Fb / np.longdouble(10.00)
+
+        A1 = np.matmul(magnus_2(-ii * HE_1, -ii * HE_1, timestep / 20.), Ab, dtype=np.clongdouble)
+        T.setamplitudes_traj(A1)
+        P1 = P0 + timestep * F1
+        T.setmomentum_traj(P1)
+        T.setoldpos_traj(R0)
+        T.setoldmom_traj(P0)
+
+        time = time + timestep
+
+        R0 = R1
+        P0 = P1
+        A0 = A1
+
+        fs0 = fs1
+        cs0 = cs1
+        es0 = es1
+
+        V0 = P1 / M
+        T.setmomentum_traj(P0)
+        phase += timestep / 2.0 * (0.5 * np.sum(np.real(P0) ** 2 / M) - 0.5 * np.sum(widths / M))
+
+        ICycle = np.floor(phase / (2.0000 * np.pi))
+
+        phase = phase - 2.000 * np.pi * ICycle
+        T.setphase_traj(phase)
+
+        T.setposition_traj(R1)
+        for n1 in range(T.nstates):
+            for n2 in range(T.nstates):
+                if n1 != n2:
+                    derivs[:, n1, n2] = cs1[:, n1, n2]
+                else:
+                    derivs[:, n1, n1] = fs1[:, n1]
+        T.setderivs_traj(derivs)
+        T.setamplitudes_traj(A1)
+        T.setHE_traj(HE_1)
+
+        # Trying clonning here, the value is taking from dima's code
+        if clonning:
+            Fa = 0.000
+            for i in range(nst):
+                Fa = Fa + fs1[:, i] * abs(A1[i]) ** 2
+            for i in range(nst):
+                Fc = np.sqrt(np.sum(((fs1[:, i] / M - Fa / M) * abs(A1[i]) ** 2) ** 2))
+
+                print('Fc for clonning is: ', Fc)
+                if Fc > 5.e-6 and np.all(abs(np.imag(HE_1[i, :])) < 2.e-3):
+                    if ncl <= maxcl:
+                        ncl += 1
+                        print('Clonning is happening \n')
+                        print('---------------------\n')
+                        print('----------------------\n')
+                        print(time, i)
+                        dirpath = 'Branch.' + str(ncl)
+
+                        if os.path.exists(dirpath) and os.path.isdir(dirpath):
+                            shutil.rmtree(dirpath)
+                        os.mkdir(dirpath)
+                        if np.abs(A1[i]) < 0.7071:
+                            Ac = np.zeros(2, dtype=np.complex128)
+                            Ac[i] = A1[i] / np.abs(A1[i])
+
+                            A1[i] = complex(0., 0.)
+
+                            if np.sum(np.abs(A1) ** 2) == 0.0:
+                                exit()
+                            A0 = A1 / np.sqrt(np.sum(np.abs(A1) ** 2))
+                        else:
+                            A0 = np.zeros(2, dtype=np.complex128)
+                            A0[i] = A1[i] / np.abs(A1[i])
+
+                            A1[i] = complex(0., 0.)
+                            Ac = A1 / np.sqrt(np.sum(np.abs(A1) ** 2))
+                        break
+
+
+
+
+        F0 = T.compforce(A0, fs0, es0, cs0)
+        HE_0 = HE_1
+        NN += 1
+        print('final value of A:', abs(A1) ** 2)
+        energy2 = T.getpotential_traj() + T.getkineticlass()
+        print('Energy difference with previous step:',  abs(energy1-energy2))
+        print('energy at this step:: ', energy2)
+
+
+        nstep += 1
+
+
+
+
+
+    # print('Trying the trains performance')
+    # print(bundle[0].get_full_phase())
+    # print(bundle[1].get_widths_time(0))
+    # # S = propagate_bundle(bundle)
+    # print(S)
+    # # print(bundle[1].get_derivs_time(1))
+    # print(S, bundle[0].get_full_phase())
+    bundle=0
+    FT=0
+    return FT, T, bundle
 
 def propagate_bundle(B):
     ntraj = len(B)

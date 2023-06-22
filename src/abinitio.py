@@ -136,8 +136,7 @@ def create_input(trajN, istep, q, geo):
            for i in range(geo.natoms):
                line_wr = geo.atnames[i] + ' ' + str("{:.16E}".format(Decimal(r[0, i]))) + ' ' + \
                          str("{:.16E}".format(Decimal(r[1, i]))) + ' ' + str("{:.16E}".format(Decimal(r[2, i]))) + '\n'
-               # print(file)
-               # print(line_wr)
+
                f.write(line_wr)
            f.write('}\n')
 
@@ -216,8 +215,7 @@ geomtype=xyz;
                 for i in range(geo.natoms):
                     line_wr = geo.atnames[i] + ' ' + str("{:.16E}".format(Decimal(r[0, i]))) + ' ' + \
                               str("{:.16E}".format(Decimal(r[1, i]))) + ' ' + str("{:.16E}".format(Decimal(r[2, i]))) + '\n'
-            # print(file)
-            # print(line_wr)
+
                     f.write(line_wr)
                 f.write('}\n')
             f.write('''{multi,failsafe;
@@ -374,9 +372,9 @@ def readpun():
                 configs.append(ff[0])
                 j = j + 1
 
-    print(configs)
+
     total = len(configs)
-    print('total CIS ',total)
+
     oneciv = int(total / 3)
     cis = cis[0:oneciv, :]
     configs = configs[0:oneciv]
