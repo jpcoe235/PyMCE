@@ -147,12 +147,20 @@ class trajectory():
         else:
             return self.stateAmpE
 
+    def getfullforce(self):
+        result=np.zeros((self.ndim, self.nstates))
+        for i in range(self.nstates):
+            result[:,i]=self.derivmat[:,i,i]
+        return result
     def getforce_traj(self, i):
         if self.nstates > 1:
             return self.derivmat[:, i, i]
         else:
             return self.derivmat
-
+    def setforce_traj(self,value):
+        for i in range(self.nstates):
+            self.derivmat[:,i,i]=value[:,i]
+        return
     def getcoupling_traj(self, i, j):
         if i == j:
             return np.zeros(self.ndim)

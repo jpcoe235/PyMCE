@@ -5,6 +5,7 @@ from src import abinitio
 from src.constants import physconst
 from src.propagators import velocityverlet
 from src.propagators import velocityverlet_dima
+from src.propagators import velocityverlet_restart
 from src.propagators import rk_method_4
 from src.propagators import rkf45
 import src.overlaps as ovs
@@ -54,14 +55,14 @@ q = np.zeros(geo.ndf, dtype=np.longdouble)
 p = np.zeros_like(q, dtype=np.longdouble)
 
 sharc = True
-numtraj=3
+numtraj = 4
 count = 0
 
 if sharc:
     index1 = False
     index2 = False
     atomc = 1
-    os.system('python src/wigner.py -n 1 vibs.molden')
+    #   os.system('python src/wigner.py -n 1 vibs.molden')
     with open('initconds', 'r') as f:
         lines = f.readlines()
         for line in lines:
@@ -97,12 +98,14 @@ else:
 T1.setmassall_traj(geo.massrk)
 T1.setposition_traj(q)
 T1.setmomentum_traj(p * T1.getmassall_traj())
-#Sharc calculates velocities, we need to multiply by the mass to get the momentum
+# Sharc calculates velocities, we need to multiply by the mass to get the momentum
 
 pec, der, cis, configs = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
 
 T1.setpotential_traj(pec)  # taking V(R) from ab-initio
-T1.setderivs_traj(der)  # derivatives matrix not mass-weighted (possibly change that), diagonals are forces and off-d are nacmes
+T1.setderivs_traj(
+    der)  # derivatives matrix not mass-weighted (possibly change that), diagonals are forces and off-d are nacmes
+T1.setcivecs(cis)
 
 f = open("coups_forces_first.dat", 'w', buffering=1)
 for i in range(T1.nstates):
@@ -116,11 +119,13 @@ print('dermatrix=', der)
 print('Energies= ', pec)
 
 T1.setmass_traj(geo.masses)  # mass of every atom in a.u (the dimmension is natoms/nparts)
-T1.setmassall_traj(geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
+T1.setmassall_traj(
+    geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
 T1.setcivecs(cis)
 T1.setconfigs(configs)
 amps = np.zeros(T1.nstates, dtype=np.clongdouble)
-amps[dyn.inipes - 1] = np.clongdouble(1.00000000 + 0.000000000j)  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
+amps[dyn.inipes - 1] = np.clongdouble(
+    1.00000000 + 0.000000000j)  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
 
 T1.setamplitudes_traj(amps)
 T1.setd_traj(amps)
@@ -128,11 +133,11 @@ phases = np.zeros(T1.nstates)  # Phase of the wfn, would be S in the previous eq
 T1.setphases_traj(phases)
 T1.setwidth_traj(dyn.gamma)
 
-#We need to change gamma if we plan to couple the trajectories afterwards
+# We need to change gamma if we plan to couple the trajectories afterwards
 
 
-dt= 0.25*1e-15/ph.au2sec
-#dt = np.longdouble(4.130000) #0.1 fs
+dt = 0.1 * 1e-15 / ph.au2sec
+# dt = np.longdouble(4.130000) #0.1 fs
 print('dt:', dt * ph.au2sec / 1e-15)
 
 amps = np.zeros((15000, 2))
@@ -176,12 +181,21 @@ for i in range(1):
     # else:
     #     phasewf = -1
     phasewf = 1
+    finaltime=600
+    finaltime = finaltime / (ph.au2sec / 1E-15)
+    time_vec = np.linspace(0.000, finaltime,int(finaltime/dt))
     # os.system('cp /home/AndresMoreno/wfu/003.molpro.wfu /home/AndresMoreno/wfu/002.molpro.wfu')
     # os.system('cp 003.molpro.wfu 002.molpro.wfu')
-    FT, T2, Bundle = velocityverlet_dima(Told, 600, dt, i + 1,numtraj, calc1, phasewf,0.0000)
+    restarting = False
+    if not restarting:
+        FT, T2, Bundle = velocityverlet_dima(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
+    else:
 
+        NN = 90
+        time = time_vec[NN-1]
+        FT, T2, Bundle = velocityverlet_restart(finaltime, dt, NN, numtraj, calc1, phasewf, time)
 
-    #exit
+    # exit
     # for ns in range(T2.nstates):
     #     ovs_ci = np.dot(T2.getcivecs()[:, ns], T1.getcivecs()[:, ns])
     #     if ovs_ci < 0.0:
@@ -213,5 +227,5 @@ f.close()
 f2.close()
 f3.close()
 # fig1.savefig('energydif.png')
-#fig2.savefig('amplitudes.png')
+# fig2.savefig('amplitudes.png')
 # fig3.savefig('overlaps.png')

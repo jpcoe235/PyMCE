@@ -17,7 +17,7 @@ a dynamics calculation'''
 class ab_par():
     def __init__(self):
         self.molecule = 'Pyrazyne'  # Name of the molecule, it is not really used for anything
-        self.act_orb = 21  # Active orbitals
+        self.act_orb = 21 # Active orbitals
         self.closed_orb = 13  # Closed orbitals
         self.basis = 'avdz'  # Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
         self.civec = False  # prints CIs
@@ -34,7 +34,7 @@ def inp_out(i, substep, geo, T1):
     file2 = create_input(i, substep, q, geo)  # call to create_inp function
 
     T1.setfilecalc(file2)
-    os.system('/usr/bin/molpro -d . -s molpro_traj_' + str(i) + '_' + str(
+    os.system('/usr/bin/molpro -s molpro_traj_' + str(i) + '_' + str(
         substep) + '.inp')  # running molpro, change it for any run in a different computer
     time_counter = 0  #
     time_to_wait = 10000000
@@ -109,6 +109,7 @@ def create_input(trajN, istep, q, geo):
         # f.write(line_wr_2)
         if first:
             os.system('cp /home/andres/wfu/wavefunction.wfu /home/andres/wfu/004.molpro.wfu')
+            os.system('cp /home/andres/wfu/wavefunction.wfu 004.molpro.wfu')
             line_wr = 'file,3,004.molpro.wfu\n'
         else:
             line_wr = 'file,3,004.molpro.wfu\n'
@@ -124,7 +125,7 @@ def create_input(trajN, istep, q, geo):
 
         f.write('punch,molpro.pun,new\n')
 
-        if first:
+        if 3<2:
            f.write('''
   SYMMETRY,NOSYM
   GEOMTYPE=XYZ
@@ -149,12 +150,12 @@ def create_input(trajN, istep, q, geo):
 
   {MULTI
   OCC,21
-  START,2072.2
   ORBITAL,2072.2
   CLOSED,13
   ORBPRINT,19
   WF,ELEC=36,SYM=1,SPIN=0
   STATE,3
+  print,civector
   CPMCSCF,GRAD,1.1,RECORD=5101.1
   CPMCSCF,GRAD,2.1,RECORD=5102.1
   CPMCSCF,GRAD,3.1,RECORD=5103.1
