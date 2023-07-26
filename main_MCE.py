@@ -13,7 +13,7 @@ import numpy as np
 from copy import copy
 import src.Wigner_dist as Wigner_dist
 import os
-from matplotlib import pyplot as plt
+#from matplotlib import pyplot as plt
 import multiprocessing as mp
 from src.outputs import output_traj as wrtout
 from src import swarm
@@ -55,14 +55,14 @@ q = np.zeros(geo.ndf, dtype=np.longdouble)
 p = np.zeros_like(q, dtype=np.longdouble)
 
 sharc = True
-numtraj = 4
+numtraj = 6
 count = 0
 
 if sharc:
     index1 = False
     index2 = False
     atomc = 1
-    #   os.system('python src/wigner.py -n 1 vibs.molden')
+    os.system('python src/wigner.py -n 1 vibs.molden')
     with open('initconds', 'r') as f:
         lines = f.readlines()
         for line in lines:
@@ -123,8 +123,8 @@ T1.setmassall_traj(
     geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
 T1.setcivecs(cis)
 T1.setconfigs(configs)
-amps = np.zeros(T1.nstates, dtype=np.clongdouble)
-amps[dyn.inipes - 1] = np.clongdouble(
+amps = np.zeros(T1.nstates, dtype=np.complex128)
+amps[dyn.inipes - 1] = np.complex128(
     1.00000000 + 0.000000000j)  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
 
 T1.setamplitudes_traj(amps)
