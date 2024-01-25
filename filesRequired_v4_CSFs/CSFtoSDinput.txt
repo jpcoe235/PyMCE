@@ -1,0 +1,6 @@
+nbft
+14
+ntotal
+16
+n_beta
+8

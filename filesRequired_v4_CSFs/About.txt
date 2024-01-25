@@ -1,0 +1,7 @@
+
+This civ_in is for CO STO-3G and is not required as will automatically check if it exists
+
+
+mcciCalc.in can change cmin if needed etc but states and orbitals labels, number of electrons will be taken care of by python script.  
+
+Line 365 to 384 in python script is part to edit for different molecules

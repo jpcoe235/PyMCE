@@ -1,0 +1,12 @@
+double occupied
+8
+write MO integrals
+.FALSE.
+FCI gradient
+.FALSE.
+Selected CI gradient
+.FALSE.
+Selected CI NACs
+.TRUE.
+NACstates
+3

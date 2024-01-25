@@ -64,7 +64,7 @@ class initgeom():
         self._rkinit = value
 
 
-def process_geometry(geom_file='Geometry_pyrazine.xyz'):
+def process_geometry(geom_file='geometry.xyz'):
     """
     This function takes a standard xyz file as input where
     first line is number of atoms

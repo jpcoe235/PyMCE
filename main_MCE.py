@@ -5,6 +5,7 @@ from src import abinitio
 from src.constants import physconst
 from src.propagators import velocityverlet
 from src.propagators import velocityverlet_dima
+from src.propagators import velocityverlet_mcci
 from src.propagators import velocityverlet_restart
 from src.propagators import rk_method_4
 from src.propagators import rkf45
@@ -13,13 +14,14 @@ import numpy as np
 from copy import copy
 import src.Wigner_dist as Wigner_dist
 import os
-#from matplotlib import pyplot as plt
+# from matplotlib import pyplot as plt
 import multiprocessing as mp
 from src.outputs import output_traj as wrtout
 from src import swarm
 from src import branching as br
 from src.overlaps_wf import overlap as ovwf
 from src.Full_traj import full_trajectory
+import src.MCCI_reader as mccire
 
 from src import buildhs
 import src.ekincorrection as ek
@@ -55,14 +57,15 @@ q = np.zeros(geo.ndf, dtype=np.longdouble)
 p = np.zeros_like(q, dtype=np.longdouble)
 
 sharc = True
-numtraj = 6
+mcci = True
+numtraj = 7
 count = 0
 
 if sharc:
     index1 = False
     index2 = False
     atomc = 1
-    os.system('python src/wigner.py -n 1 vibs.molden')
+    os.system('python src/wigner.py -n 1 vibs_ethyl.molden')
     with open('initconds', 'r') as f:
         lines = f.readlines()
         for line in lines:
@@ -87,6 +90,7 @@ if sharc:
                     index2 = False
                     atomc = 1
 
+
 else:
     with open('initial_pyrazine.dat', 'r') as f:
         f.readline()
@@ -95,16 +99,71 @@ else:
             q[i] = np.longdouble(float(N.replace('D', 'E')))
             p[i] = np.longdouble(float(M.replace('D', 'E')))
 
+if mcci:
+    pec,der= mccire.MCCI_reader(q,geo,dyn)
+else:
+    pec, der, cis, configs = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
+    # with open('InputGeom.txt', 'w') as f:
+    #     for i in q:
+    #         f.write(str(i) + '\n')
+    #
+    # os.chdir('filesRequired_v4_CSFs')
+    # # os.system('cd filesRequired_v4_CSFs')
+    # os.system('cp ../InputGeom.txt .')
+    # os.system('python3 MCCIoutputGradAndNAC.py')
+    # pes = np.zeros(dyn.nstates, dtype=np.double)
+    # grads = np.zeros((geo.ndf, dyn.nstates), dtype=np.double)
+    # nacs = np.zeros((geo.ndf, dyn.nstates, dyn.nstates), dtype=np.double)
+    # with open('FinalE', 'r') as f:
+    #     for i in range(dyn.nstates):
+    #         pes[i] = f.readline()
+    #
+    # with open('NACresults.txt', 'r') as f:
+    #     for i in range(dyn.nstates):
+    #         for j in range(i + 1, dyn.nstates):
+    #             f.readline()
+    #             print(i, j)
+    #             for n in range(geo.natoms):
+    #                 M = f.readline()
+    #                 M = M.strip().split()
+    #                 print(M)
+    #                 nacs[3 * n:3 * n + 3, i, j] = M[1:]
+    #
+    # for i in range(dyn.nstates):
+    #     with open(str("SCIgradient_"+str(i+1)+'.txt'), 'r') as f:
+    #         for n in range(geo.natoms):
+    #             M = f.readline()
+    #             M = M.strip().split()
+    #             print(M)
+    #             grads[3 * n:3 * n + 3, i] = M[0:]
+    #
+    #
+    #
+    # pes = np.asarray(pes)
+    # nacs = np.asarray(nacs)
+    # print(pes)
+    # print(nacs)
+    # print(grads)
+    #
+    # der = np.zeros(
+    #     (geo.ndf, dyn.nstates, dyn.nstates))  # Define variable der, grads in the diag and nacmes in the offdiags
+    # for i in range(T1.nstates):
+    #     der[:, i, i] = -grads[:, i]
+    #     for j in range(i+1,T1.nstates):
+    #             der[:, i, j] = nacs[:, i, j]
+    #             der[:, j, i] = -nacs[:, i, j]
+   # exit()
+
 T1.setmassall_traj(geo.massrk)
 T1.setposition_traj(q)
 T1.setmomentum_traj(p * T1.getmassall_traj())
 # Sharc calculates velocities, we need to multiply by the mass to get the momentum
 
-pec, der, cis, configs = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
-
+#pec, der, cis, configs = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
+cis=np.zeros(10)
+configs=np.zeros(10)
 T1.setpotential_traj(pec)  # taking V(R) from ab-initio
-T1.setderivs_traj(
-    der)  # derivatives matrix not mass-weighted (possibly change that), diagonals are forces and off-d are nacmes
+T1.setderivs_traj(der)  # derivatives matrix not mass-weighted (possibly change that), diagonals are forces and off-d are nacmes
 T1.setcivecs(cis)
 
 f = open("coups_forces_first.dat", 'w', buffering=1)
@@ -181,18 +240,19 @@ for i in range(1):
     # else:
     #     phasewf = -1
     phasewf = 1
-    finaltime=600
+    finaltime = 200
     finaltime = finaltime / (ph.au2sec / 1E-15)
-    time_vec = np.linspace(0.000, finaltime,int(finaltime/dt))
+    time_vec = np.linspace(0.000, finaltime, int(finaltime / dt))
     # os.system('cp /home/AndresMoreno/wfu/003.molpro.wfu /home/AndresMoreno/wfu/002.molpro.wfu')
     # os.system('cp 003.molpro.wfu 002.molpro.wfu')
     restarting = False
     if not restarting:
-        FT, T2, Bundle = velocityverlet_dima(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
+      #  FT, T2, Bundle = velocityverlet_dima(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
+      FT, T2, Bundle = velocityverlet_mcci(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
     else:
 
         NN = 90
-        time = time_vec[NN-1]
+        time = time_vec[NN - 1]
         FT, T2, Bundle = velocityverlet_restart(finaltime, dt, NN, numtraj, calc1, phasewf, time)
 
     # exit

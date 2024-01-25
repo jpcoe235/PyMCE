@@ -1,0 +1,7 @@
+ ************CONVERGENCE TEST IS RUNNING***********
+ Convergence checking will begin after           60  cycles.
+ **************************************************
+ i_try:          61 ecnvrgd: F ncnvrgd: T
+ de: -4.633616114801953E-005 dn:  6.055601431323998E-003
+ i_try:          71 ecnvrgd: T ncnvrgd: T
+ de: -2.456886134893921E-005 dn:  1.915184678522586E-003

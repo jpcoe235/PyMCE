@@ -1,0 +1,14 @@
+for imac 2021 using gfortran 10 then have to have USE mpi not mpi.h or will get an error for mpi broadcast
+
+test on Ne 6-31G* to get working
+
+note orbital symmetry labels will change if using pySCF instead of Molpro output
+
+now modifying to read in ieig civ_in files and give the transition 2RDMs -- note must have sa_mcci=.true.
+and use_sds=.true.  also gives standard 2RDM for last state  can change flag at start of mcci.f90 if this is unwanted
+
+
+check states that have come from CSF -> SDs are orthonormal
+
+
+Works and agrees 1 TRDM from 2TRDM agrees with direct calculation of 1TRDM. So comment out 1TRDM parts as don't need them now

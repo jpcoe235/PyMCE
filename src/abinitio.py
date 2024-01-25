@@ -16,14 +16,14 @@ a dynamics calculation'''
 
 class ab_par():
     def __init__(self):
-        self.molecule = 'Pyrazyne'  # Name of the molecule, it is not really used for anything
-        self.act_orb = 21 # Active orbitals
-        self.closed_orb = 13  # Closed orbitals
-        self.basis = 'avdz'  # Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
+        self.molecule = 'Ethylene'  # Name of the molecule, it is not really used for anything
+        self.act_orb = 9 # Active orbitals
+        self.closed_orb = 7  # Closed orbitals
+        self.basis = 'vdz'  # Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
         self.civec = False  # prints CIs
         self.first = True  # First calculation creates the wf file
         self.molden = False  # create a molden
-        self.n_el = 36  # number of electrons to define the wf
+        self.n_el = 16  # number of electrons to define the wf
 
 
 def inp_out(i, substep, geo, T1):
@@ -125,7 +125,7 @@ def create_input(trajN, istep, q, geo):
 
         f.write('punch,molpro.pun,new\n')
 
-        if 3<2:
+        if 2>3:
            f.write('''
   SYMMETRY,NOSYM
   GEOMTYPE=XYZ
@@ -145,15 +145,15 @@ def create_input(trajN, istep, q, geo):
             
 
 
-  basis=aug-cc-pvdz
+  basis=cc-pvdz
 
 
   {MULTI
-  OCC,21
+  OCC,9
   ORBITAL,2072.2
-  CLOSED,13
-  ORBPRINT,19
-  WF,ELEC=36,SYM=1,SPIN=0
+  CLOSED,7
+
+  WF,ELEC=16,SYM=1,SPIN=0
   STATE,3
   print,civector
   CPMCSCF,GRAD,1.1,RECORD=5101.1
@@ -174,7 +174,7 @@ def create_input(trajN, istep, q, geo):
            f.write('put,molden, ' + file2 + '\n')
            f.write('''---''')
         else:
-            f.write('basis=avdz\n')
+            f.write('basis=vdz\n')
         # f.write('basis={\n')
         # f.write('''                                                                               !
         #                                                                                 ! HYDROGEN       (4s,1p) -&gt; [2s,1p]

@@ -1,0 +1,1 @@
+for imac 2021 using gfortran 10 then have to have USE mpi not mpi.h or will get an error for mpi broadcast
