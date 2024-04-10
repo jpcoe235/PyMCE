@@ -9,10 +9,10 @@ def MCCI_reader(q,geo,dyn):
         for i in q:
             f.write(str(float(i)) + '\n')
 
-    os.chdir('filesneeded')
+    os.chdir('bathCI/files_required')
     # os.system('cd filesRequired_v4_CSFs')
-    os.system('cp ../InputGeom.txt .')
-    os.system('python3 MCCI_output_v2.py')
+    os.system('cp ../../InputGeom.txt .')
+    os.system('python3 SHCIoutputAllGradAndNAC_singlets.py >log.txt')
     pes = np.zeros(dyn.nstates, dtype=np.double)
     grads = np.zeros((geo.ndf, dyn.nstates), dtype=np.double)
     nacs = np.zeros((geo.ndf, dyn.nstates, dyn.nstates), dtype=np.double)
@@ -20,16 +20,16 @@ def MCCI_reader(q,geo,dyn):
         for i in range(dyn.nstates):
             pes[i] = f.readline()
 
-    with open('NACresults.txt', 'r') as f:
-        for i in range(dyn.nstates):
-            for j in range(i + 1, dyn.nstates):
-                f.readline()
+
+    for i in range(dyn.nstates):
+        for j in range(i + 1, dyn.nstates):
+            with open("NAC_state" + str(i + 1) +"state"+ str(j + 1)+'.txt') as f:
                 print(i, j)
                 for n in range(geo.natoms):
                     M = f.readline()
                     M = M.strip().split()
                     print(M)
-                    nacs[3 * n:3 * n + 3, i, j] = M[1:]
+                    nacs[3 * n:3 * n + 3, i, j] = M
 
     for i in range(dyn.nstates):
         with open(str("SCIgradient_state" + str(i + 1) + '.txt'), 'r') as f:
@@ -49,5 +49,5 @@ def MCCI_reader(q,geo,dyn):
         for j in range(i + 1, dyn.nstates):
             der[:, i, j] = nacs[:, i, j]
             der[:, j, i] = -nacs[:, i, j]
-    os.chdir("../")
+    os.chdir("../../")
     return pes, der

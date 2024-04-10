@@ -41,31 +41,34 @@ os.system('rm /home/AndresMoreno/wfu/*')
 ''' call initial geometry and dynamic parameters along with pyhisical constants'''
 
 dyn = initdyn()
-geo = initgeom()
+geo = initgeom('CHD_geom.xyz')
+print(geo.natoms)
 ph = physconst()
-
+# dt in fs
+dt=0.1
+dt = dt* 1e-15 / ph.au2sec
+#Final time in fs
+finaltime = 200
+finaltime = finaltime / (ph.au2sec / 1E-15)
+numtraj = 1
 '''First initialize and populate one trajectory'''
 
 T1 = initialize_traj.trajectory(geo.natoms, 3, dyn.nstates)
 # The 3 here referes to the degrees of freedom per atom, in case you want a 1D system or 2D
-# qin, pin = Wigner_dist.WignerSampling()
-# print(qin,pin)
-# exit()
-# q=qin
-# p=pin
+
 q = np.zeros(geo.ndf, dtype=np.longdouble)
 p = np.zeros_like(q, dtype=np.longdouble)
 
 sharc = True
-mcci = True
-numtraj = 7
+mcci = False
+
 count = 0
 
 if sharc:
     index1 = False
     index2 = False
     atomc = 1
-    os.system('python src/wigner.py -n 1 vibs_ethyl.molden')
+    os.system('python src/wigner.py -n 1 CHD_vibs.molden') #Ask for a proper file
     with open('initconds', 'r') as f:
         lines = f.readlines()
         for line in lines:
@@ -99,64 +102,17 @@ else:
             q[i] = np.longdouble(float(N.replace('D', 'E')))
             p[i] = np.longdouble(float(M.replace('D', 'E')))
 
+
+print(T1.getposition_traj())
+T1.setmassall_traj(geo.massrk)
+T1.setposition_traj(q)
+T1.setmomentum_traj(p * T1.getmassall_traj())
 if mcci:
     pec,der= mccire.MCCI_reader(q,geo,dyn)
 else:
     pec, der, cis, configs = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
-    # with open('InputGeom.txt', 'w') as f:
-    #     for i in q:
-    #         f.write(str(i) + '\n')
-    #
-    # os.chdir('filesRequired_v4_CSFs')
-    # # os.system('cd filesRequired_v4_CSFs')
-    # os.system('cp ../InputGeom.txt .')
-    # os.system('python3 MCCIoutputGradAndNAC.py')
-    # pes = np.zeros(dyn.nstates, dtype=np.double)
-    # grads = np.zeros((geo.ndf, dyn.nstates), dtype=np.double)
-    # nacs = np.zeros((geo.ndf, dyn.nstates, dyn.nstates), dtype=np.double)
-    # with open('FinalE', 'r') as f:
-    #     for i in range(dyn.nstates):
-    #         pes[i] = f.readline()
-    #
-    # with open('NACresults.txt', 'r') as f:
-    #     for i in range(dyn.nstates):
-    #         for j in range(i + 1, dyn.nstates):
-    #             f.readline()
-    #             print(i, j)
-    #             for n in range(geo.natoms):
-    #                 M = f.readline()
-    #                 M = M.strip().split()
-    #                 print(M)
-    #                 nacs[3 * n:3 * n + 3, i, j] = M[1:]
-    #
-    # for i in range(dyn.nstates):
-    #     with open(str("SCIgradient_"+str(i+1)+'.txt'), 'r') as f:
-    #         for n in range(geo.natoms):
-    #             M = f.readline()
-    #             M = M.strip().split()
-    #             print(M)
-    #             grads[3 * n:3 * n + 3, i] = M[0:]
-    #
-    #
-    #
-    # pes = np.asarray(pes)
-    # nacs = np.asarray(nacs)
-    # print(pes)
-    # print(nacs)
-    # print(grads)
-    #
-    # der = np.zeros(
-    #     (geo.ndf, dyn.nstates, dyn.nstates))  # Define variable der, grads in the diag and nacmes in the offdiags
-    # for i in range(T1.nstates):
-    #     der[:, i, i] = -grads[:, i]
-    #     for j in range(i+1,T1.nstates):
-    #             der[:, i, j] = nacs[:, i, j]
-    #             der[:, j, i] = -nacs[:, i, j]
-   # exit()
 
-T1.setmassall_traj(geo.massrk)
-T1.setposition_traj(q)
-T1.setmomentum_traj(p * T1.getmassall_traj())
+
 # Sharc calculates velocities, we need to multiply by the mass to get the momentum
 
 #pec, der, cis, configs = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
@@ -178,14 +134,11 @@ print('dermatrix=', der)
 print('Energies= ', pec)
 
 T1.setmass_traj(geo.masses)  # mass of every atom in a.u (the dimmension is natoms/nparts)
-T1.setmassall_traj(
-    geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
+T1.setmassall_traj(geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)
 T1.setcivecs(cis)
 T1.setconfigs(configs)
 amps = np.zeros(T1.nstates, dtype=np.complex128)
-amps[dyn.inipes - 1] = np.complex128(
-    1.00000000 + 0.000000000j)  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
-
+amps[dyn.inipes - 1] = np.complex128(1.00000000 + 0.000000000j)  # Amplitudes of Ehrenfest trajectories, they should be defined as a=d *exp(im*S)
 T1.setamplitudes_traj(amps)
 T1.setd_traj(amps)
 phases = np.zeros(T1.nstates)  # Phase of the wfn, would be S in the previous equation
@@ -194,9 +147,6 @@ T1.setwidth_traj(dyn.gamma)
 
 # We need to change gamma if we plan to couple the trajectories afterwards
 
-
-dt = 0.1 * 1e-15 / ph.au2sec
-# dt = np.longdouble(4.130000) #0.1 fs
 print('dt:', dt * ph.au2sec / 1e-15)
 
 amps = np.zeros((15000, 2))
@@ -206,10 +156,6 @@ calc1 = False
 # wrtout(True, T1, 0.000)
 repeat = True
 T0 = copy(T1)
-# fig1, ax1 = plt.subplots()
-
-# ax1.axes.set_xlabel('Time(fs)')
-# ax1.axes.set_ylabel('E difference')
 f = open("N_mine.dat", 'w', buffering=1)
 f2 = open("CS_mine.dat", 'w', buffering=1)
 f3 = open("F_mine.dat", 'w', buffering=1)
@@ -219,73 +165,25 @@ for i in range(1):
     if i == 0:
         T1 = copy(T0)
 
-    # ratios=br.branching_ratios(B)
-
-    # energy2 = B.Traj[1].getpotential_traj() + B.Traj[1].getkineticlass() - ekin_tr
-    # print('Energy1: ', energy2)
-
-    # ax = fig.add_subplot(111)
-
-    # ax2.scatter(t * ph.au2sec / 1e-15, np.abs(T1.stateAmpE[0]) ** 2, c='red')
-    # ax2.scatter(t * ph.au2sec / 1e-15, np.abs(T1.stateAmpE[1]) ** 2, c='blue')
-    # plt.pause(0.1)
     f.write(str(t) + ' ' + str(np.abs(T1.stateAmpE[0]) ** 2) + ' ' + str(np.abs(T1.stateAmpE[1]) ** 2) + '\n')
     f2.write(str(t) + ' ' + str(T1.getcoupling_traj(0, 1)[0]) + '\n')
 
-    # amps[i, 0] = np.abs(T1.stateAmpE[0]) ** 2
-    # amps[i, 1] = np.abs(T1.stateAmpE[1]) ** 2
     Told = copy(T1)
-    # if Told.getcoupling_traj(0, 1)[0] > 0:
-    #     phasewf = 1
-    # else:
-    #     phasewf = -1
     phasewf = 1
-    finaltime = 200
-    finaltime = finaltime / (ph.au2sec / 1E-15)
+
     time_vec = np.linspace(0.000, finaltime, int(finaltime / dt))
     # os.system('cp /home/AndresMoreno/wfu/003.molpro.wfu /home/AndresMoreno/wfu/002.molpro.wfu')
     # os.system('cp 003.molpro.wfu 002.molpro.wfu')
     restarting = False
     if not restarting:
-      #  FT, T2, Bundle = velocityverlet_dima(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
-      FT, T2, Bundle = velocityverlet_mcci(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
+     FT, T2, Bundle = velocityverlet_dima(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
+     # FT, T2, Bundle = velocityverlet_mcci(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
     else:
 
         NN = 90
         time = time_vec[NN - 1]
         FT, T2, Bundle = velocityverlet_restart(finaltime, dt, NN, numtraj, calc1, phasewf, time)
 
-    # exit
-    # for ns in range(T2.nstates):
-    #     ovs_ci = np.dot(T2.getcivecs()[:, ns], T1.getcivecs()[:, ns])
-    #     if ovs_ci < 0.0:
-    #         ccoo = 'red'
-    #     else:
-    #         ccoo = colorvec[ns]
-    # #   ax3.scatter(t*ph.au2sec/1e-15, abs(ovs_ci),c=ccoo)
-    # ov_11, ov_22 = ovwf(T1, T2)
-    # if ov_11 < 0.0:
-    #     ccoo = 'red'
-    # else:
-    #     ccoo = colorvec[2]
-    # # ax3.scatter(t * ph.au2sec / 1e-15, abs(ov_11), c=ccoo)
-    # if ov_22 < 0.0:
-    #     ccoo = 'red'
-    # else:
-    #     ccoo = colorvec[3]
-    # # ax3.scatter(t * ph.au2sec / 1e-15, abs(ov_22), c=ccoo)
-    # # plt.pause(0.01)
-    # energy2 = T2.getpotential_traj() + T2.getkineticlass()
-    # f3.write(str(t) + ' ' + str(energy2) + '\n')
-    # print('coupling', T2.getcoupling_traj(0, 1)[0])
-    #
-    # T1 = copy(T2)
-    #
-    # t = t + dt
-# wrtout(False, T1, t)
 f.close()
 f2.close()
 f3.close()
-# fig1.savefig('energydif.png')
-# fig2.savefig('amplitudes.png')
-# fig3.savefig('overlaps.png')

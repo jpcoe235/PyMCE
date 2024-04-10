@@ -18,19 +18,11 @@ class singlepart(): #Madeup for a single particle moving in a model potential
 
 
 
-
-
-
-
-
-
-
-
 class initgeom():
-    def __init__(self):
+    def __init__(self,filegeom):
         ph = physconst()  # Call to a dict of physical constants
 
-        self.natoms, self.atnames, self.rk, self.comments = process_geometry()  # Process xyz file and output required parameters
+        self.natoms, self.atnames, self.rk, self.comments = process_geometry(filegeom)  # Process xyz file and output required parameters
 
         massesdict = get_atomic_masses()  # Mass of each atom
         mass = np.zeros((self.natoms), dtype=np.double)

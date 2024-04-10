@@ -810,7 +810,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
     f = open(Folder_traj + '/pops.dat', 'w', buffering=1)
     g = open(Folder_traj + '/normenergies.dat', 'w', buffering=1)
     ab2 = ab_par()
-    geo = initgeom()
+    geo = initgeom('CHD_geom.xyz')
     geo2 = singlepart()
     ii = np.complex128(0.00 + 1.00000000000j)
     magnus_slice = 10
@@ -1069,9 +1069,9 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
         print('final value of A:', abs(A1) ** 2)
         energy2 = T.getpotential_traj() + T.getkineticlass()
         print('Energy difference with previous step:', abs(energy1 - energy2))
-        for ns in range(T.nstates):
-            ovs_ci = np.dot(Told.getcivecs()[:, ns], T.getcivecs()[:, ns])
-            print('Coupling is: ', ovs_ci, ns)
+      #  for ns in range(T.nstates):
+      #      ovs_ci = np.dot(Told.getcivecs()[:, ns], T.getcivecs()[:, ns])
+      #      print('Coupling is: ', ovs_ci, ns)
         if abs(energy1 - energy2) > 1e-4 and adapt <= 7:
             adapt += 1
             shutil.copy('/home/andres/wfu/005.molpro.wfu', '/home/andres/004.molpro.wfu')
@@ -1524,29 +1524,7 @@ def velocityverlet_restart(finaltime, timestep, NN, trajnum, calc1, phasewf, tim
                 print('propagate a bit backwards')
                 timestep = -timestep
 
-            # if (abs(energy1 - finalenergy) > 5e-5):
-            #     Force1 = Told2.getfullforce()
-            #     Force2 = T.getfullforce()
-            #     avgforce = (0.95*Force1 + 0.05*Force2)
-            #
-            #     print(abs(sum(np.sqrt(Force1 ** 2))))
-            #     print(abs(sum(np.sqrt(Force2 ** 2))))
-            #     print(abs(sum(np.sqrt(avgforce ** 2))))
-            #
-            #     Force1 = Told2.getmomentum_traj()
-            #     Force2 = T.getmomentum_traj()
-            #     avgforce2 = (0.95*Force1 + 0.05*Force2)
-            #
-            #     T = deepcopy(Told2)
-            #     T.setforce_traj(avgforce)
-            #     T.setmomentum_traj(avgforce2)
-            #
-            #     print(abs(sum(np.sqrt(Force1 ** 2))))
-            #     print(abs(sum(np.sqrt(Force2 ** 2))))
-            #     print(abs(sum(np.sqrt(avgforce2 ** 2))))
-            #
-            #
-            # else:
+
             T = deepcopy(T1)
         energy2 = T.getpotential_traj() + T.getkineticlass()
         print('energy at this step:: ', energy2)

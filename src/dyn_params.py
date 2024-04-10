@@ -7,7 +7,7 @@ class initdyn():
     def __init__(self):
         ph = physconst()
         self._ntraj = 50  # Number of trajectories
-        self._gamma = np.asarray([22.7,22.7,22.7,22.7,22.7,22.7,4.7,4.7,4.7,4.7, 4.7, 4.7, 4.7,4.7,4.7,4.7,4.7,4.7 ])  # Gamma var, width of the gaussians
+        self._gamma = np.zeros((14*3))  # Gamma var, width of the gaussians
         self._nstep = 100  # Time-steps by trajectory
         self._dt = (0.1* 1e-15 / (ph.au2sec))
         self._nstates = 2

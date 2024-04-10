@@ -16,21 +16,21 @@ a dynamics calculation'''
 
 class ab_par():
     def __init__(self):
-        self.molecule = 'Ethylene'  # Name of the molecule, it is not really used for anything
-        self.act_orb = 9 # Active orbitals
-        self.closed_orb = 7  # Closed orbitals
-        self.basis = 'vdz'  # Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
+        self.molecule = 'CHD'  # Name of the molecule, it is not really used for anything
+        self.act_orb = 24 # Active orbitals
+        self.closed_orb = 20  # Closed orbitals
+        self.basis = '6-31G*'  # Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
         self.civec = False  # prints CIs
         self.first = True  # First calculation creates the wf file
         self.molden = False  # create a molden
-        self.n_el = 16  # number of electrons to define the wf
+        self.n_el = 44  # number of electrons to define the wf
 
 
 def inp_out(i, substep, geo, T1):
     os.system('rm molpro.pun')
    # os.system('rm molpro_traj*')
     q = T1.getposition_traj()
-
+    print(q)
     file2 = create_input(i, substep, q, geo)  # call to create_inp function
 
     T1.setfilecalc(file2)
@@ -45,7 +45,7 @@ def inp_out(i, substep, geo, T1):
         if time_counter > time_to_wait:
             print('more than 1000 secs')
             break
-    N, L, M, cis, configs = readpun()  # Read the punch file, only PES, GRADS and NACMES are read in a (natoms,3) format
+    N, L, M, cis, configs = readpun(geo)  # Read the punch file, only PES, GRADS and NACMES are read in a (natoms,3) format
 
     pes, grads, nacs, = update_vars(N, L, M,
                                     geo)  # Update the vars to be vectors, it gives the option to mass-weigth the params
@@ -66,7 +66,7 @@ def transform_q_to_r(q, geo, first):
     ph = physconst()
     k = 0
     r = np.zeros((3, geo.natoms))
-
+    print(q)
     diff = np.longdouble(q)
     for i in range(geo.natoms):
         for j in range(3):
@@ -174,7 +174,7 @@ def create_input(trajN, istep, q, geo):
            f.write('put,molden, ' + file2 + '\n')
            f.write('''---''')
         else:
-            f.write('basis=vdz\n')
+            f.write('basis='+ab.basis+'\n')
         # f.write('basis={\n')
         # f.write('''                                                                               !
         #                                                                                 ! HYDROGEN       (4s,1p) -&gt; [2s,1p]
@@ -311,11 +311,10 @@ diab,3000.2,save=2140.3}
     return file2
 
 
-def readpun():
+def readpun(geo):
     '''This routine reads a punch molpro file, it outputs as matrices the potential energies, gradients
     and non-adiabatic coupling matrices'''
     dyn = initdyn()
-    geo = initgeom()
     v_c = np.zeros(dyn.nstates)
     grad = np.zeros((3, geo.natoms, dyn.nstates))
     nacmes = np.zeros((3, geo.natoms, dyn.nstates, dyn.nstates))
