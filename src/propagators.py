@@ -777,6 +777,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
     os.mkdir(Folder_traj)
     File_trajs_x = Folder_traj + '/Trajectory_x_1.dat'
     File_trajs_p = Folder_traj + '/Trajectory_p_1.dat'
+    File_phases= Folder_traj + '/Trajectory_phase_1.dat'
     File_amps = Folder_traj + '/Trajectory_amp_1.dat'
     File_energies = Folder_traj + '/Trajectory_energy.dat'
     File_NN = Folder_traj + '/Trajectory_NNdist.dat'
@@ -790,6 +791,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
     trajs_x = open(File_trajs_x, 'w')
     trajs_p = open(File_trajs_p, 'w')
     trajs_amps = open(File_amps, 'w')
+    trajs_ph= open(File_phases,'w')
     traj_ens = open(File_energies, 'w')
     traj_dist = open(File_NN, 'w')
     phasefile = open(Folder_traj + '/phase.dat', 'w')
@@ -817,7 +819,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
     nst = T.nstates
     widths = np.zeros(T.ndim)
     widths[:] = 4.7
-    widths[0:6] = 22.7
+    widths[0:18] = 22.7
     M = T.getmassall_traj()
     R0 = T.getposition_traj()
     P0 = T.getmomentum_traj()
@@ -837,6 +839,8 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
         trajs_p.write('\n')
     trajs_amps.write('0.0000\n')
     traj_dist.write('0.000' + ' ')
+    trajs_ph.write('0.000' + ' ')
+    trajs_ph.write(str(phase)+'\n')
     NNdist = np.sqrt(sum((R0[0:3] - R0[4:7]) ** 2)) * 0.529177
     traj_dist.write(str(NNdist) + '\n')
     trajs_amps.write(str(A0) + '\n')
@@ -1131,6 +1135,8 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
         trajs_x.write(str(time) + '\n')
         traj_dist.write(str(time) + ' ')
         trajs_p.write(str(time) + '\n')
+        trajs_ph.write(str(time) + ' ')
+        trajs_ph.write(str(phase) + '\n')
         traj_ens.write(str(time) + ' ' + str(np.real(es0[0])) + ' ' + str(np.real(es0[1])) +' ' + str(T.getkineticlass()) + ' ' + str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
 
         for i in range(natoms):

@@ -48,7 +48,7 @@ ph = physconst()
 dt=0.1
 dt = dt* 1e-15 / ph.au2sec
 #Final time in fs
-finaltime = 200
+finaltime = 0.3
 finaltime = finaltime / (ph.au2sec / 1E-15)
 numtraj = 1
 '''First initialize and populate one trajectory'''
@@ -68,7 +68,7 @@ if sharc:
     index1 = False
     index2 = False
     atomc = 1
-    os.system('python src/wigner.py -n 1 CHD_vibs.molden') #Ask for a proper file
+    os.system('python src/wigner.py -n 1 chd.mld') #Ask for a proper file
     with open('initconds', 'r') as f:
         lines = f.readlines()
         for line in lines:
