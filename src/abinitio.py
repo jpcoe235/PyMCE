@@ -30,7 +30,7 @@ def inp_out(i, substep, geo, T1):
     os.system('rm molpro.pun')
    # os.system('rm molpro_traj*')
     q = T1.getposition_traj()
-    print(q)
+
     file2 = create_input(i, substep, q, geo)  # call to create_inp function
 
     T1.setfilecalc(file2)
@@ -66,7 +66,7 @@ def transform_q_to_r(q, geo, first):
     ph = physconst()
     k = 0
     r = np.zeros((3, geo.natoms))
-    print(q)
+
     diff = np.longdouble(q)
     for i in range(geo.natoms):
         for j in range(3):

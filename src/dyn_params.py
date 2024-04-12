@@ -10,7 +10,7 @@ class initdyn():
         self._gamma = np.zeros((14*3))  # Gamma var, width of the gaussians
         self._nstep = 100  # Time-steps by trajectory
         self._dt = (0.1* 1e-15 / (ph.au2sec))
-        self._nstates = 2
+        self._nstates = 3
         self._state = range(0, self._nstates)  # array of states
         self._inipes = 2  # Initial state
         self._e_ref = np.double(-70) #Reference energy for the ground state

@@ -42,13 +42,13 @@ os.system('rm /home/AndresMoreno/wfu/*')
 
 dyn = initdyn()
 geo = initgeom('CHD_geom.xyz')
-print(geo.natoms)
+
 ph = physconst()
 # dt in fs
 dt=0.1
 dt = dt* 1e-15 / ph.au2sec
 #Final time in fs
-finaltime = 0.3
+finaltime = 20
 finaltime = finaltime / (ph.au2sec / 1E-15)
 numtraj = 1
 '''First initialize and populate one trajectory'''
@@ -103,7 +103,7 @@ else:
             p[i] = np.longdouble(float(M.replace('D', 'E')))
 
 
-print(T1.getposition_traj())
+
 T1.setmassall_traj(geo.massrk)
 T1.setposition_traj(q)
 T1.setmomentum_traj(p * T1.getmassall_traj())
@@ -130,8 +130,7 @@ for i in range(T1.nstates):
         f.write('\n')
 f.close()
 
-print('dermatrix=', der)
-print('Energies= ', pec)
+
 
 T1.setmass_traj(geo.masses)  # mass of every atom in a.u (the dimmension is natoms/nparts)
 T1.setmassall_traj(geo.massrk)  # mass in every degree of freedom (careful to use it, it can triple the division/multiplication easily)

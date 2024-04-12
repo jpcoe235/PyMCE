@@ -770,11 +770,14 @@ def velocityverlet_mcci(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
 def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, time):
     adapt = 0
     Folder_traj = 'Traj_' + str(trajnum)
+    Folder_restart=Folder_traj+'/restart/'
+
     syscomm = 'rm -r ' + Folder_traj
     os.system('rm -r ')
     if os.path.exists(Folder_traj) and os.path.isdir(Folder_traj):
         shutil.rmtree(Folder_traj)
     os.mkdir(Folder_traj)
+    os.mkdir(Folder_restart)
     File_trajs_x = Folder_traj + '/Trajectory_x_1.dat'
     File_trajs_p = Folder_traj + '/Trajectory_p_1.dat'
     File_phases= Folder_traj + '/Trajectory_phase_1.dat'
@@ -804,6 +807,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
     ph = physconst()
 
     print('finaltime=', finaltime, time, timestep)
+
     np.set_printoptions(precision=32)
     FT = full_trajectory(finaltime, timestep, T.ndim, T.nstates)
 
@@ -876,12 +880,13 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
     FT.set_derivs_time(0, derivs)
     FT.set_amps_time(0, A0)
 
-    print('Prueba printing', FT.get_amps_time(0))
+
 
     # F0 = T.compforce(A0, fs0, es0, cs0) / np.longdouble(10.000)
     nstep = 0
+    print('initial amplitudes ',abs(A0)**2)
     while time <= finaltime:
-        print('Time is: ', time)
+        print('Time is: ', time/(1e-15 / ph.au2sec))
         if time < 0.000:
             timestep = -timestep
         shutil.copy('/home/andres/wfu/004.molpro.wfu', '/home/andres/wfu/005.molpro.wfu')
@@ -890,7 +895,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
         energy1 = T.getpotential_traj() + T.getkineticlass()
         nslice = magnus_slice
 
-        Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(20.0000)), A0, dtype=np.complex128)
+        Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(10.0000)), A0, dtype=np.complex128)
 
         F0 = T.compforce(A0, fs0, es0, cs0) / 10.0000000
         for i in range(1, 10):
@@ -1027,7 +1032,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
         T.setamplitudes_traj(A1)
         T.setHE_traj(HE_1)
 
-        # Trying clonning here, the value is taking from dima's code
+        # Trying clonning here, the value is taken from dima's code
         if clonning:
             Fa = 0.000
             for i in range(nst):
@@ -1076,7 +1081,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
       #  for ns in range(T.nstates):
       #      ovs_ci = np.dot(Told.getcivecs()[:, ns], T.getcivecs()[:, ns])
       #      print('Coupling is: ', ovs_ci, ns)
-        if abs(energy1 - energy2) > 1e-4 and adapt <= 7:
+        if abs(energy1 - energy2) > 1e-4 and adapt <= 3:
             adapt += 1
             shutil.copy('/home/andres/wfu/005.molpro.wfu', '/home/andres/004.molpro.wfu')
             shutil.copy('/home/andres/wfu/005.molpro.wfu', '004.molpro.wfu')
@@ -1129,42 +1134,42 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
             print('new timestep: ', timestep)
             print('-----------------')
             print('-----------------')
+        else:
+            print('energy at this step:: ', energy2)
+            g.write(str(energy2) + '\n')
+            trajs_x.write(str(time) + '\n')
+            traj_dist.write(str(time) + ' ')
+            trajs_p.write(str(time) + '\n')
+            trajs_ph.write(str(time) + ' ')
+            trajs_ph.write(str(phase) + '\n')
+            traj_ens.write(str(time) + ' ' + str(np.real(es0[0])) + ' ' + str(np.real(es0[1])) +' ' + str(T.getkineticlass()) + ' ' + str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
 
-        print('energy at this step:: ', energy2)
-        g.write(str(energy2) + '\n')
-        trajs_x.write(str(time) + '\n')
-        traj_dist.write(str(time) + ' ')
-        trajs_p.write(str(time) + '\n')
-        trajs_ph.write(str(time) + ' ')
-        trajs_ph.write(str(phase) + '\n')
-        traj_ens.write(str(time) + ' ' + str(np.real(es0[0])) + ' ' + str(np.real(es0[1])) +' ' + str(T.getkineticlass()) + ' ' + str(sum(abs(A0) ** 2 * np.real(es0))) + '\n')
+            for i in range(natoms):
+                trajs_x.write(str([i for i in np.real(R0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
+                trajs_x.write('\n')
+                trajs_p.write(str([i for i in np.real(P0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
+                trajs_p.write('\n')
+            trajs_amps.write(str(time) + '\n')
+            trajs_amps.write(str(A0).replace('[', '').replace(']', '') + '\n')
+            NNdist = np.real(np.sqrt(sum((R0[0:3] - R0[3:6]) ** 2))) * 0.529177
+            traj_dist.write(str(NNdist) + '\n')
+            shutil.copy('molpro_traj_' + str(nstep) + '_0.inp', Folder_abinitio + '/')
+            shutil.copy('molpro_traj_' + str(nstep) + '_0.out', Folder_abinitio + '/')
+            shutil.copy('molpro_traj_' + str(nstep) + '_0.mld', Folder_abinitio + '/')
+            os.remove('molpro_traj_' + str(nstep) + '_0.inp')
+            os.remove('molpro_traj_' + str(nstep) + '_0.xml')
+            os.remove('molpro_traj_' + str(nstep) + '_0.out')
+            os.remove('molpro_traj_' + str(nstep) + '_0.mld')
 
-        for i in range(natoms):
-            trajs_x.write(str([i for i in np.real(R0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
-            trajs_x.write('\n')
-            trajs_p.write(str([i for i in np.real(P0[i * 3:(i + 1) * 3])]).replace('[', '').replace(']', ''))
-            trajs_p.write('\n')
-        trajs_amps.write(str(time) + '\n')
-        trajs_amps.write(str(A0).replace('[', '').replace(']', '') + '\n')
-        NNdist = np.real(np.sqrt(sum((R0[0:3] - R0[3:6]) ** 2))) * 0.529177
-        traj_dist.write(str(NNdist) + '\n')
-        shutil.copy('molpro_traj_' + str(nstep) + '_0.inp', Folder_abinitio + '/')
-        shutil.copy('molpro_traj_' + str(nstep) + '_0.out', Folder_abinitio + '/')
-        shutil.copy('molpro_traj_' + str(nstep) + '_0.mld', Folder_abinitio + '/')
-        os.remove('molpro_traj_' + str(nstep) + '_0.inp')
-        os.remove('molpro_traj_' + str(nstep) + '_0.xml')
-        os.remove('molpro_traj_' + str(nstep) + '_0.out')
-        os.remove('molpro_traj_' + str(nstep) + '_0.mld')
+            restartfile = open(Folder_restart+'restart' + '_' + str(NN) + '.dat', 'wb')
+            restartFT = open(Folder_restart+'restartFT' + '_' + str(NN) + '.dat', 'wb')
 
-        restartfile = open('restart' + '_' + str(NN) + '.dat', 'wb')
-        restartFT = open('restartFT' + '_' + str(NN) + '.dat', 'wb')
+            pickle.dump(T, restartfile)
+            pickle.dump(FT, restartFT)
+            NN += 1
+            nstep += 1
 
-        pickle.dump(T, restartfile)
-        pickle.dump(FT, restartFT)
-        NN += 1
-        nstep += 1
-
-        FT.set_mass(T.getmassall_traj())
+            FT.set_mass(T.getmassall_traj())
 
     if trains:
         d = {}
@@ -1190,6 +1195,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
     # # print(bundle[1].get_derivs_time(1))
     # print(S, bundle[0].get_full_phase())
     bundle = 0
+
     return FT, T, bundle
 
 
