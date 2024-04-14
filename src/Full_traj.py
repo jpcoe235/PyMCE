@@ -5,7 +5,7 @@ from initialize_traj import trajectory
 class full_trajectory():
     def __init__(self, end_time, dt, ndim, nstates):
         npart = int(ndim / 3)
-        self.n_time_p = int(end_time / (dt/3.00))
+        self.n_time_p = int(end_time / (dt/100.0))
         print('number_of_time_points', self.n_time_p)
         self.time = np.zeros(self.n_time_p)
         self.mom = np.zeros((ndim, self.n_time_p))

@@ -45,10 +45,11 @@ geo = initgeom('CHD_geom.xyz')
 
 ph = physconst()
 # dt in fs
-dt=0.1
+dt=0.05
 dt = dt* 1e-15 / ph.au2sec
+
 #Final time in fs
-finaltime = 20
+finaltime = 50
 finaltime = finaltime / (ph.au2sec / 1E-15)
 numtraj = 1
 '''First initialize and populate one trajectory'''

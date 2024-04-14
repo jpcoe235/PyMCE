@@ -895,7 +895,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
         energy1 = T.getpotential_traj() + T.getkineticlass()
         nslice = magnus_slice
 
-        Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(10.0000)), A0, dtype=np.complex128)
+        Ab = np.matmul(magnus_2(-ii * HE_0, -ii * HE_0, timestep / np.longdouble(20.0000)), A0, dtype=np.complex128)
 
         F0 = T.compforce(A0, fs0, es0, cs0) / 10.0000000
         for i in range(1, 10):
@@ -997,7 +997,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
         T.setmomentum_traj(P1)
         T.setoldpos_traj(R0)
         T.setoldmom_traj(P0)
-        f.write(str(time) + ' ' + str(abs(A1[0]) ** 2) + ' ' + str(abs(A1[1]) ** 2)  + '\n')
+        f.write(str(time) + ' ' + str(abs(A1[0]) ** 2) + ' ' + str(abs(A1[1]) ** 2)  + ' '+  str(abs(A1[2]) ** 2)+'\n')
 
         time = time + timestep
 
@@ -1166,6 +1166,11 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
 
             pickle.dump(T, restartfile)
             pickle.dump(FT, restartFT)
+            restartfile.close()
+            restartFT.close()
+            if NN>2:
+                os.remove(Folder_restart+'restart' + '_' + str(NN-1) + '.dat')
+                os.remove(Folder_restart+'restart' + '_' + str(NN-1) + '.dat')
             NN += 1
             nstep += 1
 
@@ -1194,6 +1199,7 @@ def velocityverlet_dima(T, finaltime, timestep, NN, trajnum, calc1, phasewf, tim
     # print(S)
     # # print(bundle[1].get_derivs_time(1))
     # print(S, bundle[0].get_full_phase())
+
     bundle = 0
 
     return FT, T, bundle
