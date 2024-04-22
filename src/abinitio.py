@@ -16,10 +16,10 @@ a dynamics calculation'''
 
 class ab_par():
     def __init__(self):
-        self.molecule = 'CHD'  # Name of the molecule, it is not really used for anything
+        self.molecule = 'Ethylene'  # Name of the molecule, it is not really used for anything
         self.act_orb = 24 # Active orbitals
         self.closed_orb = 20  # Closed orbitals
-        self.basis = '6-31G*'  # Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
+        self.basis = '6-311G*'  # Basis, not really used as the basis should be partitioned (pople or copying them from exchange)
         self.civec = False  # prints CIs
         self.first = True  # First calculation creates the wf file
         self.molden = False  # create a molden
@@ -34,7 +34,7 @@ def inp_out(i, substep, geo, T1):
     file2 = create_input(i, substep, q, geo)  # call to create_inp function
 
     T1.setfilecalc(file2)
-    os.system('/usr/bin/molpro -s molpro_traj_' + str(i) + '_' + str(
+    os.system('/usr/bin/molpro -W . -d . -I . -s molpro_traj_' + str(i) + '_' + str(
         substep) + '.inp')  # running molpro, change it for any run in a different computer
     time_counter = 0  #
     time_to_wait = 10000000
@@ -108,8 +108,8 @@ def create_input(trajN, istep, q, geo):
         line_wr_2 = 'file,2,' + str(trajN) + '.check.wfu,new\n'
         # f.write(line_wr_2)
         if first:
-            os.system('cp /home/andres/wfu/wavefunction.wfu /home/andres/wfu/004.molpro.wfu')
-            os.system('cp /home/andres/wfu/wavefunction.wfu 004.molpro.wfu')
+            os.system('cp wf.wf 004.molpro.wfu')
+
             line_wr = 'file,3,004.molpro.wfu\n'
         else:
             line_wr = 'file,3,004.molpro.wfu\n'
@@ -237,50 +237,50 @@ maxiter,40;
 orbital,2140.3;
 ORBITAL,IGNORE_ERROR;
 ciguess,2501.2 
-save,ci=2501.2}
-''')
-            f.write('''data,copy,2140.3,3000.2
-''')
-            f.write('''{multi,failsafe;
-maxiter,40;
-''')
-            line_wr = 'occ,' + str(ab.act_orb) + ';\n'
-            line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
-            line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
-            line_wr4 = 'state,' + str(3) + ';\n'
-
-            f.write(line_wr)
-            f.write(line_wr2)
-            f.write(line_wr3)
-            f.write(line_wr4)
-
-            f.write('''pspace,10.0
-orbital,2140.3;
-dm,2140.3
 save,ci=2501.2
-diab,3000.2,save=2140.3}
-            ''')
-
-            f.write('''{multi,failsafe;
-        maxiter,40;
-            ''')
-            line_wr = 'occ,' + str(ab.act_orb) + ';\n'
-            line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
-            line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
-            line_wr4 = 'state,' + str(3) + ';\n'
-
-            f.write(line_wr)
-            f.write(line_wr2)
-            f.write(line_wr3)
-            f.write(line_wr4)
-
-            f.write('''pspace,10.0
-            orbital,2140.3;
-            dm,2140.3
-            save,ci=2501.2
-            diab,3000.2,save=2140.3
-        
-                    ''')
+''')
+#             f.write('''data,copy,2140.3,3000.2
+# ''')
+#             f.write('''{multi,failsafe;
+# maxiter,40;
+# ''')
+#             line_wr = 'occ,' + str(ab.act_orb) + ';\n'
+#             line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
+#             line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
+#             line_wr4 = 'state,' + str(3) + ';\n'
+#
+#             f.write(line_wr)
+#             f.write(line_wr2)
+#             f.write(line_wr3)
+#             f.write(line_wr4)
+#
+#             f.write('''pspace,10.0
+# orbital,2140.3;
+# dm,2140.3
+# save,ci=2501.2
+# diab,3000.2,save=2140.3}
+#             ''')
+#
+#             f.write('''{multi,failsafe;
+#         maxiter,40;
+#             ''')
+#             line_wr = 'occ,' + str(ab.act_orb) + ';\n'
+#             line_wr2 = 'closed,' + str(ab.closed_orb) + ';\n'
+#             line_wr3 = 'wf,' + str(ab.n_el) + ',1,0;'
+#             line_wr4 = 'state,' + str(3) + ';\n'
+#
+#             f.write(line_wr)
+#             f.write(line_wr2)
+#             f.write(line_wr3)
+#             f.write(line_wr4)
+#
+#             f.write('''pspace,10.0
+#             orbital,2140.3;
+#             dm,2140.3
+#             save,ci=2501.2
+#             diab,3000.2,save=2140.3
+#
+#                     ''')
 
             record = 5100.1
             for i in range(dyn.nstates):

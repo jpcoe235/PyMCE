@@ -22,6 +22,7 @@ from src import branching as br
 from src.overlaps_wf import overlap as ovwf
 from src.Full_traj import full_trajectory
 import src.MCCI_reader as mccire
+import shutil
 
 from src import buildhs
 import src.ekincorrection as ek
@@ -36,7 +37,7 @@ print("Number of processors: ", mp.cpu_count())
 os.system('rm molpro.pun')
 os.system('rm molpro_traj*')
 os.system('rm *.wfu')
-os.system('rm /home/AndresMoreno/wfu/*')
+#os.system('rm /home/AndresMoreno/wfu/*')
 
 ''' call initial geometry and dynamic parameters along with pyhisical constants'''
 
@@ -45,17 +46,16 @@ geo = initgeom('CHD_geom.xyz')
 
 ph = physconst()
 # dt in fs
-dt=0.05
+dt=0.1
 dt = dt* 1e-15 / ph.au2sec
-
 #Final time in fs
-finaltime = 50
+finaltime = 200
 finaltime = finaltime / (ph.au2sec / 1E-15)
-numtraj = 1
+numtraj = 2
 '''First initialize and populate one trajectory'''
 
 T1 = initialize_traj.trajectory(geo.natoms, 3, dyn.nstates)
-# The 3 here referes to the degrees of freedom per atom, in case you want a 1D system or 2D
+# The 3 here refers to the degrees of freedom per atom, in case you want a 1D system or 2D
 
 q = np.zeros(geo.ndf, dtype=np.longdouble)
 p = np.zeros_like(q, dtype=np.longdouble)
@@ -108,8 +108,14 @@ else:
 T1.setmassall_traj(geo.massrk)
 T1.setposition_traj(q)
 T1.setmomentum_traj(p * T1.getmassall_traj())
+print('first point geometry ', q[0])
 if mcci:
     pec,der= mccire.MCCI_reader(q,geo,dyn)
+    os.system('rm bathCI/files_required/integrals_cache.dat')
+    shutil.copy('bathCI/files_required/SCIgradient_Singlet_state1.txt', 'Traj_3/Trajectory_EE'+ '/')
+    shutil.copy('bathCI/files_required/SCIgradient_Singlet_state2.txt', 'Traj_3/Trajectory_EE' + '/')
+    print('Energy: ', pec[0])
+
 else:
     pec, der, cis, configs = abinitio.inp_out(0, 0, geo, T1)  # First ab-initio run
 
@@ -177,7 +183,7 @@ for i in range(1):
     restarting = False
     if not restarting:
      FT, T2, Bundle = velocityverlet_dima(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
-     # FT, T2, Bundle = velocityverlet_mcci(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
+     #FT, T2, Bundle = velocityverlet_mcci(Told, finaltime, dt, i + 1, numtraj, calc1, phasewf, 0.0000)
     else:
 
         NN = 90
