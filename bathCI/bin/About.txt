@@ -1,0 +1,3 @@
+Selected configuration interaction analytic gradients and analytic non-adiabatic couplings
+
+
